@@ -154,7 +154,7 @@ const ProductDetail = ({ item, onBack }) => {
               cursor: "pointer",
             }}
           >
-            Gönder
+            Send
           </button>
         </div>
       </div>

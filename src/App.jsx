@@ -48,14 +48,14 @@ function App() {
           </header>
 
           <main>
-            {/* 4. PASS THE CLICK HANDLER: We pass a function to open the details */}
+            {/* 1. Results View */}
             {view === "results" && (
               <div
                 onClick={() =>
                   setSelectedProduct({
-                    title: "Siyah Kadife Ceket",
-                    price: "2.000",
-                    brand: "Urban Outfitters",
+                    title: "Sample Item",
+                    price: "100",
+                    brand: "Sample",
                     image: "https://via.placeholder.com/400",
                   })
                 }
@@ -64,13 +64,17 @@ function App() {
               </div>
             )}
 
+            {/* 2. Lens/Upload View */}
             {view === "lens" && (
               <LensTab onListingSaved={handleFinalizeListing} />
             )}
+
+            {/* 3. Profile View */}
             {view === "profile" && (
               <ProfileScreen totalWaterSaved={totalWaterSaved} />
             )}
 
+            {/* 4. My Items View - ENSURE THERE IS ONLY ONE OF THESE BLOCKS */}
             {view === "myItems" && (
               <div style={{ padding: "20px" }}>
                 <h2 style={{ textAlign: "center" }}>My Uploaded Items</h2>
@@ -82,23 +86,36 @@ function App() {
                     justifyContent: "center",
                   }}
                 >
-                  {myItems.map((item, i) => (
-                    <div
-                      key={i}
-                      style={styles.miniCard}
-                      onClick={() => setSelectedProduct(item)}
-                    >
-                      <img
-                        src={item.preview}
-                        style={styles.miniImg}
-                        alt="item"
-                      />
-                      <p style={{ fontSize: "14px", fontWeight: "bold" }}>
-                        {item.title}
-                      </p>
-                      <span style={styles.statusBadge}>Listing Active</span>
-                    </div>
-                  ))}
+                  {myItems.length === 0 ? (
+                    <p>No items listed yet.</p>
+                  ) : (
+                    myItems.map((item, i) => (
+                      <div
+                        key={i}
+                        style={styles.miniCard}
+                        onClick={() => setSelectedProduct(item)}
+                      >
+                        <img
+                          src={item.preview}
+                          style={styles.miniImg}
+                          alt="item"
+                        />
+                        <p
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "bold",
+                            margin: "5px 0",
+                          }}
+                        >
+                          {item.title}
+                        </p>
+                        <p style={{ fontSize: "12px", color: "#666" }}>
+                          {item.brand} | {item.size}
+                        </p>
+                        <span style={styles.statusBadge}>Listing Active</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
