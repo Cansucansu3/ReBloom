@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import users, products, cart, checkout, leaderboard, interactions, impact, search, outfit, gamification
+from app.routers import users, products, cart, checkout, leaderboard, interactions, impact, search, outfit, gamification, recommendations
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +25,8 @@ app.include_router(impact.router)
 app.include_router(search.router)
 app.include_router(outfit.router)
 app.include_router(gamification.router)
+app.include_router(recommendations.router)
+app.include_router(recommendations.product_router)
 
 @app.get("/")
 def root():

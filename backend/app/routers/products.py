@@ -73,6 +73,23 @@ def get_products(
     products = query.offset(skip).limit(limit).all()
     return products
 
+@router.get("/mine", response_model=List[schemas.ProductResponse])
+def get_my_products(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    seller = db.query(models.SellerProfile).filter(
+        models.SellerProfile.user_id == current_user.user_id
+    ).first()
+
+    if not seller:
+        return []
+
+    return db.query(models.Product).filter(
+        models.Product.seller_id == seller.seller_id,
+        models.Product.is_active == True
+    ).order_by(models.Product.created_at.desc()).all()
+
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(models.Product).filter(

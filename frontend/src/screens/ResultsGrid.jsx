@@ -22,12 +22,23 @@ const productMatchesSearch = (product, searchQuery) => {
   );
 };
 
-const ResultsGrid = ({ onProductSelect, searchQuery }) => {
+const ResultsGrid = ({
+  onProductSelect,
+  searchQuery,
+  providedProducts,
+  statusOverride,
+  errorOverride,
+  heading,
+  emptyMessage,
+}) => {
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
+  const useProvidedProducts = Array.isArray(providedProducts);
 
   useEffect(() => {
+    if (useProvidedProducts) return;
+
     setStatus("loading");
     getProducts({ query: searchQuery })
       .then((data) => {
@@ -39,20 +50,24 @@ const ResultsGrid = ({ onProductSelect, searchQuery }) => {
         setError(err.message);
         setStatus("error");
       });
-  }, [searchQuery]);
+  }, [searchQuery, useProvidedProducts]);
 
-  const visibleProducts = products.filter((product) =>
+  const sourceProducts = useProvidedProducts ? providedProducts : products;
+  const displayStatus = statusOverride || status;
+  const displayError = errorOverride || error;
+
+  const visibleProducts = sourceProducts.filter((product) =>
     productMatchesSearch(product, searchQuery)
   );
 
-  if (status === "loading") {
+  if (displayStatus === "loading") {
     return <p style={{ textAlign: "center", padding: "20px" }}>Loading products...</p>;
   }
 
-  if (status === "error") {
+  if (displayStatus === "error") {
     return (
       <p style={{ color: "#b00020", textAlign: "center", padding: "20px" }}>
-        Backend connection failed: {error}
+        Backend connection failed: {displayError}
       </p>
     );
   }
@@ -60,12 +75,14 @@ const ResultsGrid = ({ onProductSelect, searchQuery }) => {
   if (visibleProducts.length === 0) {
     return (
       <p style={{ textAlign: "center", padding: "20px" }}>
-        {searchQuery ? `No products found for "${searchQuery}".` : "No products yet."}
+        {emptyMessage || (searchQuery ? `No products found for "${searchQuery}".` : "No products yet.")}
       </p>
     );
   }
 
   return (
+    <>
+      {heading && <h2 style={{ margin: "20px", color: "#1f3f1c" }}>{heading}</h2>}
     <div
       style={{
         display: "flex",
@@ -107,6 +124,7 @@ const ResultsGrid = ({ onProductSelect, searchQuery }) => {
         />
       ))}
     </div>
+    </>
   );
 };
 
