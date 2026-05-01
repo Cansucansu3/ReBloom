@@ -6,3 +6,5 @@ passlib
 python-multipart
 cryptography
 bcrypt
+pillow
+numpy

@@ -14,8 +14,9 @@ export function clearToken() {
 
 async function request(path, options = {}) {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...options.headers,
   };
 
@@ -60,10 +61,58 @@ export async function createProduct(product) {
   });
 }
 
+export async function getMyProducts() {
+  return request("/products/mine");
+}
+
 export async function addToCart(productId) {
   return request(`/cart/add/${productId}`, {
     method: "POST",
   });
+}
+
+export async function recordProductView(productId) {
+  return request(`/interactions/view/${productId}`, {
+    method: "POST",
+  });
+}
+
+export async function likeProduct(productId) {
+  return request(`/interactions/like/${productId}`, {
+    method: "POST",
+  });
+}
+
+export async function recordSearch(query) {
+  return request(`/search/?query=${encodeURIComponent(query)}`, {
+    method: "POST",
+  });
+}
+
+export async function visualSearchProducts(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return request("/search/visual", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function getHomeRecommendations() {
+  return request("/recommendations/home");
+}
+
+export async function getLikedSimilarRecommendations() {
+  return request("/recommendations/liked-similar");
+}
+
+export async function getSimilarProducts(productId) {
+  return request(`/products/${productId}/similar`);
+}
+
+export async function getOutfitRecommendations(productId) {
+  return request(`/products/${productId}/outfit`);
 }
 
 export async function login(email, password) {

@@ -1,10 +1,18 @@
-import React, { useState } from "react";
-import { addToCart } from "../api/api";
+import React, { useEffect, useState } from "react";
+import { addToCart, likeProduct, recordProductView } from "../api/api";
 
-const ProductDetail = ({ item, onBack }) => {
+const ProductDetail = ({ item, onBack, onShowOutfit }) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
   const [cartMessage, setCartMessage] = useState("");
+  const [likeMessage, setLikeMessage] = useState("");
+
+  useEffect(() => {
+    const productId = item.product_id || item.id;
+    if (!productId) return;
+
+    recordProductView(productId).catch(() => {});
+  }, [item.id, item.product_id]);
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -19,9 +27,18 @@ const ProductDetail = ({ item, onBack }) => {
   const handleAddToCart = async () => {
     try {
       await addToCart(item.product_id || item.id);
-      setCartMessage("Sepete eklendi.");
+      setCartMessage("Added to cart.");
     } catch (err) {
-      setCartMessage(`Sepete eklenemedi: ${err.message}`);
+      setCartMessage(`Could not add to cart: ${err.message}`);
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      await likeProduct(item.product_id || item.id);
+      setLikeMessage("Added to favorites.");
+    } catch (err) {
+      setLikeMessage(`Could not add to favorites: ${err.message}`);
     }
   };
 
@@ -94,7 +111,23 @@ const ProductDetail = ({ item, onBack }) => {
         </div>
 
         {/* Action Button - Only Add to Cart remains */}
-        <div style={{ marginTop: "20px" }}>
+        <div style={{ display: "grid", gap: "10px", marginTop: "20px" }}>
+          <button
+            onClick={handleLike}
+            style={{
+              width: "100%",
+              padding: "15px",
+              borderRadius: "30px",
+              border: "1px solid #2d5a27",
+              background: "white",
+              color: "#2d5a27",
+              fontWeight: "bold",
+              fontSize: "16px",
+              cursor: "pointer",
+            }}
+          >
+            Add to Favorites
+          </button>
           <button
             onClick={handleAddToCart}
             style={{
@@ -109,8 +142,29 @@ const ProductDetail = ({ item, onBack }) => {
               cursor: "pointer",
             }}
           >
-            Sepete Ekle
+            Add to Cart
           </button>
+          <button
+            onClick={() => onShowOutfit?.(item)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              borderRadius: "30px",
+              border: "none",
+              background: "#2d5a27",
+              color: "white",
+              fontWeight: "bold",
+              fontSize: "16px",
+              cursor: "pointer",
+            }}
+          >
+            Complete the Look
+          </button>
+          {likeMessage && (
+            <p style={{ color: "#2d5a27", fontSize: "14px", textAlign: "center" }}>
+              {likeMessage}
+            </p>
+          )}
           {cartMessage && (
             <p style={{ color: "#2d5a27", fontSize: "14px", textAlign: "center" }}>
               {cartMessage}
@@ -125,10 +179,10 @@ const ProductDetail = ({ item, onBack }) => {
 
       {/* User Comments Section */}
       <div style={{ padding: "0 20px" }}>
-        <h3 style={{ marginBottom: "15px" }}>Yorumlar</h3>
+        <h3 style={{ marginBottom: "15px" }}>Comments</h3>
         {comments.length === 0 ? (
           <p style={{ color: "#999", fontSize: "14px" }}>
-            Henüz yorum yok. İlk yorumu sen yap!
+            No comments yet. Be the first to comment.
           </p>
         ) : (
           comments.map((c, i) => (
@@ -151,7 +205,7 @@ const ProductDetail = ({ item, onBack }) => {
           <input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Yorum ekle..."
+            placeholder="Add a comment..."
             style={{
               flex: 1,
               padding: "12px",

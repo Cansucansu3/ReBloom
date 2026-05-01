@@ -1,9 +1,35 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from app import models, auth
 from app.database import get_db
+from app.services.image_similarity import find_visually_similar_products, image_from_bytes
 
 router = APIRouter(prefix="/search", tags=["Search"])
+
+
+def product_to_dict(product, score=None):
+    data = {
+        "product_id": product.product_id,
+        "seller_id": product.seller_id,
+        "title": product.title,
+        "description": product.description,
+        "category": product.category,
+        "subcategory": product.subcategory,
+        "brand": product.brand,
+        "color": product.color,
+        "size": product.size,
+        "condition": product.condition,
+        "material": product.material,
+        "price": product.price,
+        "image_url": product.image_url,
+        "is_second_hand": product.is_second_hand,
+        "created_at": product.created_at,
+    }
+
+    if score is not None:
+        data["similarity_score"] = score
+
+    return data
 
 @router.post("/")
 def search_products(
@@ -36,6 +62,47 @@ def search_products(
         }
         for p in products
     ]
+
+
+@router.post("/visual")
+async def visual_search_products(
+    file: UploadFile = File(...),
+    limit: int = 12,
+    db: Session = Depends(get_db)
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Please upload an image file")
+
+    try:
+        query_image = image_from_bytes(await file.read())
+    except Exception:
+        raise HTTPException(status_code=400, detail="Image could not be processed")
+
+    products = db.query(models.Product).filter(models.Product.is_active == True).all()
+    scored_products = find_visually_similar_products(query_image, products, limit=limit)
+
+    if not scored_products:
+        fallback_products = (
+            db.query(models.Product)
+            .filter(models.Product.is_active == True)
+            .order_by(models.Product.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return {
+            "title": "Visual search results",
+            "algorithm": "image embedding fallback",
+            "products": [product_to_dict(product, score=0) for product in fallback_products],
+        }
+
+    return {
+        "title": "Visual search results",
+        "algorithm": "image embedding + cosine similarity",
+        "products": [
+            product_to_dict(product, score=score)
+            for score, product in scored_products
+        ],
+    }
 
 @router.get("/history")
 def get_search_history(
