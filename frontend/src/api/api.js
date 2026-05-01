@@ -42,8 +42,15 @@ async function request(path, options = {}) {
   return response.json();
 }
 
-export async function getProducts() {
-  return request("/products/");
+export async function getProducts({ query } = {}) {
+  const params = new URLSearchParams();
+
+  if (query) {
+    params.set("q", query);
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return request(`/products/${suffix}`);
 }
 
 export async function createProduct(product) {

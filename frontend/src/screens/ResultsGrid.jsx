@@ -2,13 +2,34 @@ import React, { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { getProducts } from "../api/api";
 
-const ResultsGrid = ({ onProductSelect }) => {
+const productMatchesSearch = (product, searchQuery) => {
+  if (!searchQuery) return true;
+
+  const normalizedQuery = searchQuery.toLowerCase();
+  const searchableValues = [
+    product.title,
+    product.description,
+    product.brand,
+    product.category,
+    product.subcategory,
+    product.material,
+    product.color,
+    product.size,
+  ];
+
+  return searchableValues.some((value) =>
+    String(value || "").toLowerCase().includes(normalizedQuery)
+  );
+};
+
+const ResultsGrid = ({ onProductSelect, searchQuery }) => {
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getProducts()
+    setStatus("loading");
+    getProducts({ query: searchQuery })
       .then((data) => {
         setProducts(data);
         setStatus("ready");
@@ -18,7 +39,11 @@ const ResultsGrid = ({ onProductSelect }) => {
         setError(err.message);
         setStatus("error");
       });
-  }, []);
+  }, [searchQuery]);
+
+  const visibleProducts = products.filter((product) =>
+    productMatchesSearch(product, searchQuery)
+  );
 
   if (status === "loading") {
     return <p style={{ textAlign: "center", padding: "20px" }}>Loading products...</p>;
@@ -32,8 +57,12 @@ const ResultsGrid = ({ onProductSelect }) => {
     );
   }
 
-  if (products.length === 0) {
-    return <p style={{ textAlign: "center", padding: "20px" }}>No products yet.</p>;
+  if (visibleProducts.length === 0) {
+    return (
+      <p style={{ textAlign: "center", padding: "20px" }}>
+        {searchQuery ? `No products found for "${searchQuery}".` : "No products yet."}
+      </p>
+    );
   }
 
   return (
@@ -45,7 +74,7 @@ const ResultsGrid = ({ onProductSelect }) => {
         padding: "20px",
       }}
     >
-      {products.map((product) => (
+      {visibleProducts.map((product) => (
         <ProductCard
           key={product.product_id}
           onClick={() =>

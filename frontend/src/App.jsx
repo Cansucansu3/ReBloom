@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import LensTab from "./screens/LensTab";
 import ResultsGrid from "./screens/ResultsGrid";
 import ProfileScreen from "./screens/ProfileScreen";
-import ProductDetail from "./screens/ProductDetail"; // 1. IMPORT THE NEW FILE
+import ProductDetail from "./screens/ProductDetail";
 
 function App() {
   useEffect(() => {
@@ -12,8 +12,8 @@ function App() {
   const [view, setView] = useState("lens");
   const [myItems, setMyItems] = useState([]);
   const [totalWaterSaved, setTotalWaterSaved] = useState(0);
-
-  // 2. NEW STATE: Stores the item the user clicked on
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const handleFinalizeListing = (newItem, savings) => {
@@ -22,39 +22,49 @@ function App() {
     setView("myItems");
   };
 
+  const handleSearch = (event) => {
+    event.preventDefault();
+    setActiveSearch(searchTerm.trim());
+    setSelectedProduct(null);
+    setView("results");
+  };
+
   return (
     <div
       className="App"
       style={{ paddingBottom: "80px", fontFamily: "sans-serif" }}
     >
-      {/* 3. CONDITIONAL RENDERING: If a product is selected, show the Detail Page */}
       {selectedProduct ? (
         <ProductDetail
           item={selectedProduct}
           onBack={() => setSelectedProduct(null)}
         />
       ) : (
-        /* If NO product is selected, show the normal App structure */
         <>
           <header style={styles.header}>
             <h1 style={{ margin: 0 }}>ReBloom</h1>
-            <div style={styles.searchContainer}>
+            <form onSubmit={handleSearch} style={styles.searchContainer}>
               <input
                 type="text"
                 placeholder="Search styles..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
                 style={styles.searchInput}
               />
-              <button style={styles.searchBtn}>🔍</button>
-            </div>
+              <button type="submit" style={styles.searchBtn}>
+                Search
+              </button>
+            </form>
           </header>
 
           <main>
-            {/* 1. Results View */}
             {view === "results" && (
-              <ResultsGrid onProductSelect={setSelectedProduct} />
+              <ResultsGrid
+                onProductSelect={setSelectedProduct}
+                searchQuery={activeSearch}
+              />
             )}
 
-            {/* 2. Lens/Upload View */}
             {view === "lens" && (
               <LensTab
                 onListingSaved={handleFinalizeListing}
@@ -62,12 +72,10 @@ function App() {
               />
             )}
 
-            {/* 3. Profile View */}
             {view === "profile" && (
               <ProfileScreen totalWaterSaved={totalWaterSaved} />
             )}
 
-            {/* 4. My Items View - ENSURE THERE IS ONLY ONE OF THESE BLOCKS */}
             {view === "myItems" && (
               <div style={{ padding: "20px" }}>
                 <h2 style={{ textAlign: "center" }}>My Uploaded Items</h2>
@@ -116,23 +124,15 @@ function App() {
 
           <nav style={styles.navBar}>
             <button onClick={() => setView("results")} style={styles.navItem}>
-              🏠
-              <br />
               Home
             </button>
             <button onClick={() => setView("lens")} style={styles.navItem}>
-              📸
-              <br />
               Lens
             </button>
             <button onClick={() => setView("myItems")} style={styles.navItem}>
-              👕
-              <br />
               My Items
             </button>
             <button onClick={() => setView("profile")} style={styles.navItem}>
-              🌳
-              <br />
               Profile
             </button>
           </nav>
@@ -142,7 +142,6 @@ function App() {
   );
 }
 
-// ... styles remain the same
 const styles = {
   header: {
     background: "#2d5a27",

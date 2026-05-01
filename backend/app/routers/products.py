@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models, auth
@@ -47,12 +48,27 @@ def get_products(
     skip: int = 0,
     limit: int = 100,
     category: str = None,
+    q: str = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(models.Product).filter(models.Product.is_active == True)
     
     if category:
         query = query.filter(models.Product.category == category)
+
+    if q:
+        search_term = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                models.Product.title.ilike(search_term),
+                models.Product.description.ilike(search_term),
+                models.Product.brand.ilike(search_term),
+                models.Product.category.ilike(search_term),
+                models.Product.subcategory.ilike(search_term),
+                models.Product.material.ilike(search_term),
+                models.Product.color.ilike(search_term),
+            )
+        )
     
     products = query.offset(skip).limit(limit).all()
     return products
