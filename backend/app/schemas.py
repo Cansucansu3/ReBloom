@@ -63,7 +63,12 @@ class ProductResponse(BaseModel):
     title: str
     description: Optional[str]
     category: Optional[str]
+    subcategory: Optional[str]
     brand: Optional[str]
+    color: Optional[str]
+    size: Optional[str]
+    condition: Optional[str]
+    material: Optional[str]
     price: float
     image_url: Optional[str]
     is_second_hand: bool

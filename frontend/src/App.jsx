@@ -18,6 +18,7 @@ function App() {
 
   const handleFinalizeListing = (newItem, savings) => {
     setMyItems([...myItems, { ...newItem, savings, status: "Active" }]);
+    setTotalWaterSaved((current) => current + savings);
     setView("myItems");
   };
 
@@ -50,23 +51,15 @@ function App() {
           <main>
             {/* 1. Results View */}
             {view === "results" && (
-              <div
-                onClick={() =>
-                  setSelectedProduct({
-                    title: "Sample Item",
-                    price: "100",
-                    brand: "Sample",
-                    image: "https://via.placeholder.com/400",
-                  })
-                }
-              >
-                <ResultsGrid />
-              </div>
+              <ResultsGrid onProductSelect={setSelectedProduct} />
             )}
 
             {/* 2. Lens/Upload View */}
             {view === "lens" && (
-              <LensTab onListingSaved={handleFinalizeListing} />
+              <LensTab
+                onListingSaved={handleFinalizeListing}
+                onAuthRequired={() => setView("profile")}
+              />
             )}
 
             {/* 3. Profile View */}

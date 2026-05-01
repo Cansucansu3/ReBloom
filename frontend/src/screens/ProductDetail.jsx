@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { addToCart } from "../api/api";
 
 const ProductDetail = ({ item, onBack }) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
+  const [cartMessage, setCartMessage] = useState("");
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -11,6 +13,15 @@ const ProductDetail = ({ item, onBack }) => {
         { user: "User_" + Math.floor(Math.random() * 100), text: newComment },
       ]);
       setNewComment("");
+    }
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(item.product_id || item.id);
+      setCartMessage("Sepete eklendi.");
+    } catch (err) {
+      setCartMessage(`Sepete eklenemedi: ${err.message}`);
     }
   };
 
@@ -85,6 +96,7 @@ const ProductDetail = ({ item, onBack }) => {
         {/* Action Button - Only Add to Cart remains */}
         <div style={{ marginTop: "20px" }}>
           <button
+            onClick={handleAddToCart}
             style={{
               width: "100%",
               padding: "15px",
@@ -99,6 +111,11 @@ const ProductDetail = ({ item, onBack }) => {
           >
             Sepete Ekle
           </button>
+          {cartMessage && (
+            <p style={{ color: "#2d5a27", fontSize: "14px", textAlign: "center" }}>
+              {cartMessage}
+            </p>
+          )}
         </div>
       </div>
 

@@ -6,8 +6,13 @@ const WATER_FOOTPRINTS = {
 };
 
 export const calculateSavings = (fabric, weightKg) => {
-  const footprint = WATER_FOOTPRINTS[fabric] || 1000;
-  return Math.round(footprint * weightKg);
+  const normalizedFabric =
+    typeof fabric === "string"
+      ? fabric.charAt(0).toUpperCase() + fabric.slice(1).toLowerCase()
+      : "";
+  const numericWeight = Number(weightKg);
+  const footprint = WATER_FOOTPRINTS[normalizedFabric] || 1000;
+  return Math.round(footprint * (Number.isFinite(numericWeight) ? numericWeight : 1));
 };
 
 export const getTreeStage = (score) => {
