@@ -1,3 +1,9 @@
+import base64
+import json
+import os
+import urllib.error
+import urllib.request
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from app import models, auth
@@ -30,6 +36,49 @@ def product_to_dict(product, score=None):
         data["similarity_score"] = score
 
     return data
+
+
+def ai_product_payload(product):
+    return {
+        "product_id": product.product_id,
+        "title": product.title,
+        "category": product.category,
+        "color": product.color,
+        "image_url": product.image_url,
+    }
+
+
+def image_bytes_to_data_url(content, content_type):
+    encoded = base64.b64encode(content).decode("ascii")
+    return f"data:{content_type};base64,{encoded}"
+
+
+def get_ai_visual_scores(image_content, content_type, candidates, limit=12):
+    service_url = os.getenv("REBLOOM_AI_SERVICE_URL", "http://127.0.0.1:8010").rstrip("/")
+    payload = {
+        "query_image": image_bytes_to_data_url(image_content, content_type),
+        "candidates": [ai_product_payload(candidate) for candidate in candidates],
+        "limit": limit,
+    }
+
+    try:
+        request = urllib.request.Request(
+            f"{service_url}/visual-search",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return {}
+
+    return {
+        item["product_id"]: float(item["score"])
+        for item in data.get("ranked", [])
+        if item.get("product_id") is not None
+    }
+
 
 @router.post("/")
 def search_products(
@@ -73,13 +122,30 @@ async def visual_search_products(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Please upload an image file")
 
+    image_content = await file.read()
+
     try:
-        query_image = image_from_bytes(await file.read())
+        query_image = image_from_bytes(image_content)
     except Exception:
         raise HTTPException(status_code=400, detail="Image could not be processed")
 
     products = db.query(models.Product).filter(models.Product.is_active == True).all()
-    scored_products = find_visually_similar_products(query_image, products, limit=limit)
+    ai_scores = get_ai_visual_scores(
+        image_content,
+        file.content_type,
+        products,
+        limit=limit,
+    )
+
+    if ai_scores:
+        product_by_id = {product.product_id: product for product in products}
+        scored_products = [
+            (score, product_by_id[product_id])
+            for product_id, score in ai_scores.items()
+            if product_id in product_by_id
+        ]
+    else:
+        scored_products = find_visually_similar_products(query_image, products, limit=limit)
 
     if not scored_products:
         fallback_products = (
@@ -97,7 +163,7 @@ async def visual_search_products(
 
     return {
         "title": "Visual search results",
-        "algorithm": "image embedding + cosine similarity",
+        "algorithm": "clip-ai-service" if ai_scores else "histogram-fallback",
         "products": [
             product_to_dict(product, score=score)
             for score, product in scored_products

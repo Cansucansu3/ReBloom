@@ -1,4 +1,8 @@
 from collections import Counter
+import json
+import os
+import urllib.error
+import urllib.request
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
@@ -47,6 +51,94 @@ def score_product_similarity(base_product, candidate):
         score += 1
 
     return score
+
+
+def normalize_category(category):
+    value = str(category or "").strip().lower()
+    aliases = {
+        "top": "tops",
+        "shirt": "tops",
+        "shirts": "tops",
+        "tshirt": "tops",
+        "tshirts": "tops",
+        "t-shirt": "tops",
+        "t-shirts": "tops",
+        "jean": "pants",
+        "jeans": "pants",
+        "trouser": "pants",
+        "trousers": "pants",
+        "pant": "pants",
+        "dress": "dresses",
+        "handbag": "bags",
+        "handbags": "bags",
+        "bag": "bags",
+        "outwear": "outerwear",
+        "jacket": "outerwear",
+        "jackets": "outerwear",
+    }
+    return aliases.get(value, value)
+
+
+def infer_outfit_category(product):
+    normalized = normalize_category(product.category)
+    if normalized and normalized != "clothing":
+        return normalized
+
+    text = " ".join(
+        str(value or "").lower()
+        for value in [product.title, product.subcategory, product.description]
+    )
+    title_aliases = [
+        (("t-shirt", "tshirt", "shirt", "tee", "blouse", "top"), "tops"),
+        (("skirt",), "skirts"),
+        (("jean", "pants", "trouser"), "pants"),
+        (("dress",), "dresses"),
+        (("jacket", "coat", "outerwear"), "outerwear"),
+        (("bag", "handbag", "purse"), "bags"),
+    ]
+
+    for terms, category in title_aliases:
+        if any(term in text for term in terms):
+            return category
+
+    return normalized
+
+
+def ai_product_payload(product):
+    return {
+        "product_id": product.product_id,
+        "title": product.title,
+        "category": product.category,
+        "color": product.color,
+        "image_url": product.image_url,
+    }
+
+
+def get_ai_outfit_scores(base_product, candidates, limit=6):
+    service_url = os.getenv("REBLOOM_AI_SERVICE_URL", "http://127.0.0.1:8010").rstrip("/")
+    payload = {
+        "base_product": ai_product_payload(base_product),
+        "candidates": [ai_product_payload(candidate) for candidate in candidates],
+        "limit": limit,
+    }
+
+    try:
+        request = urllib.request.Request(
+            f"{service_url}/outfit-rank",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return {}
+
+    return {
+        item["product_id"]: float(item["score"])
+        for item in data.get("ranked", [])
+        if item.get("product_id") is not None
+    }
 
 
 def get_active_product_or_404(product_id, db):
@@ -269,25 +361,39 @@ def recommend_outfit(
         "bags": ["dresses", "tops", "pants", "skirts"],
         "clothing": ["outerwear", "pants", "skirts", "tops"],
     }
-    target_categories = compatible_categories.get(base_product.category, [])
+    base_category = infer_outfit_category(base_product)
+    target_categories = compatible_categories.get(base_category, [])
 
     query = db.query(models.Product).filter(
         models.Product.product_id != product_id,
         models.Product.is_active == True,
     )
 
-    if target_categories:
-        query = query.filter(models.Product.category.in_(target_categories))
-
     candidates = query.all()
-    scored = [
-        (score_product_similarity(base_product, candidate), candidate)
-        for candidate in candidates
-    ]
+    if target_categories:
+        candidates = [
+            candidate for candidate in candidates
+            if infer_outfit_category(candidate) in target_categories
+        ]
+
+    ai_scores = get_ai_outfit_scores(base_product, candidates)
+    scored = []
+
+    for candidate in candidates:
+        metadata_score = score_product_similarity(base_product, candidate)
+        ai_score = ai_scores.get(candidate.product_id)
+        final_score = metadata_score
+
+        if ai_score is not None:
+            final_score += ai_score * 10
+
+        scored.append((final_score, candidate))
+
     scored.sort(key=lambda item: item[0], reverse=True)
 
     return {
         "title": "Complete the Look",
         "base_product": product_to_dict(base_product),
+        "scoring": "ai-service" if ai_scores else "metadata-fallback",
         "products": [product_to_dict(product) for _, product in scored[:6]],
     }

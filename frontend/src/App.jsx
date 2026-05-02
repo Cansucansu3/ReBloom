@@ -135,9 +135,34 @@ function App() {
               <button
                 type="button"
                 onClick={() => visualInputRef.current?.click()}
-                style={styles.searchBtn}
+                style={styles.photoSearchBtn}
+                aria-label="Search by photo"
+                title="Search by photo"
               >
-                Photo
+                <span style={styles.cameraIconWrap} aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14.5 5.5 13 3H8L6.5 5.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-4" />
+                    <circle cx="10.5" cy="12.5" r="3.5" />
+                  </svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="11"
+                    height="11"
+                    fill="currentColor"
+                    style={styles.sparkleIcon}
+                  >
+                    <path d="M12 2.5 14.2 8l5.8 2-5.8 2L12 17.5 9.8 12 4 10l5.8-2L12 2.5Z" />
+                  </svg>
+                </span>
               </button>
               <input
                 ref={visualInputRef}
@@ -272,6 +297,34 @@ const styles = {
     borderRadius: "20px",
     padding: "5px 10px",
     cursor: "pointer",
+  },
+  photoSearchBtn: {
+    width: "38px",
+    height: "38px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "white",
+    color: "#2d5a27",
+    border: "none",
+    borderRadius: "50%",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(31, 63, 28, 0.18)",
+    flex: "0 0 38px",
+  },
+  cameraIconWrap: {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "22px",
+    height: "22px",
+  },
+  sparkleIcon: {
+    position: "absolute",
+    right: "-5px",
+    top: "-6px",
+    color: "#f4c542",
   },
   navBar: {
     position: "fixed",
