@@ -40,7 +40,7 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-        user = db.query(User).filter(User.id == user_id).first()
+        user = db.query(User).filter(User.user_id == user_id).first()
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
         return user

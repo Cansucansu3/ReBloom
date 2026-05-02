@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+import { createProduct, getToken } from "../api/api";
 import { calculateSavings } from "../utils/gamificationLogic";
 
-const LensTab = ({ onListingSaved }) => {
+const LensTab = ({ onListingSaved, onAuthRequired }) => {
   const [preview, setPreview] = useState(null);
   const [step, setStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
   const [metadata, setMetadata] = useState({
     title: "",
+    category: "tops",
     brand: "",
     size: "M",
     color: "",
@@ -17,13 +20,60 @@ const LensTab = ({ onListingSaved }) => {
 
   const handleUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreview(reader.result);
       setStep(2);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const currentSavings = calculateSavings(metadata.fabric, metadata.weight);
+  const handleSaveListing = async () => {
+    if (!getToken()) {
+      alert("Ilan kaydetmek icin once Profile sekmesinden giris yapmalisin.");
+      onAuthRequired?.();
+      return;
+    }
+
+    const currentSavings = calculateSavings(metadata.fabric, metadata.weight);
+    setIsSaving(true);
+
+    try {
+      const savedProduct = await createProduct({
+        title: metadata.title,
+        description: metadata.title,
+        category: metadata.category,
+        subcategory: metadata.gender,
+        brand: metadata.brand,
+        color: metadata.color,
+        size: metadata.size,
+        condition: "used",
+        material: metadata.fabric,
+        price: Number(metadata.price),
+        image_url: preview,
+        source_platform: "lens",
+      });
+
+      onListingSaved(
+        {
+          ...metadata,
+          id: savedProduct.product_id,
+          product_id: savedProduct.product_id,
+          preview: savedProduct.image_url,
+        },
+        currentSavings
+      );
+      setStep(1);
+      setPreview(null);
+    } catch (err) {
+      console.error("Save error:", err);
+      alert(`Backend'e kaydedilemedi: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (step === 2)
     return (
@@ -35,6 +85,7 @@ const LensTab = ({ onListingSaved }) => {
         <input
           type="text"
           placeholder="e.g. Black Velvet Jacket"
+          value={metadata.title}
           onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
           style={styles.input}
         />
@@ -43,9 +94,26 @@ const LensTab = ({ onListingSaved }) => {
         <input
           type="number"
           placeholder="2000"
+          value={metadata.price}
           onChange={(e) => setMetadata({ ...metadata, price: e.target.value })}
           style={styles.input}
         />
+
+        <label style={styles.label}>Category</label>
+        <select
+          value={metadata.category}
+          onChange={(e) => setMetadata({ ...metadata, category: e.target.value })}
+          style={styles.input}
+        >
+          <option value="tops">Tops</option>
+          <option value="pants">Pants</option>
+          <option value="shorts">Shorts</option>
+          <option value="skirts">Skirts</option>
+          <option value="dresses">Dresses</option>
+          <option value="shoes">Shoes</option>
+          <option value="bags">Bags</option>
+          <option value="outerwear">Outerwear</option>
+        </select>
 
         <div style={styles.row}>
           <div style={{ flex: 1 }}>
@@ -53,6 +121,7 @@ const LensTab = ({ onListingSaved }) => {
             <input
               type="text"
               placeholder="e.g. BDG"
+              value={metadata.brand}
               onChange={(e) =>
                 setMetadata({ ...metadata, brand: e.target.value })
               }
@@ -64,6 +133,7 @@ const LensTab = ({ onListingSaved }) => {
             <input
               type="text"
               placeholder="e.g. M / 38"
+              value={metadata.size}
               onChange={(e) =>
                 setMetadata({ ...metadata, size: e.target.value })
               }
@@ -78,6 +148,7 @@ const LensTab = ({ onListingSaved }) => {
             <input
               type="text"
               placeholder="e.g. Charcoal"
+              value={metadata.color}
               onChange={(e) =>
                 setMetadata({ ...metadata, color: e.target.value })
               }
@@ -87,6 +158,7 @@ const LensTab = ({ onListingSaved }) => {
           <div style={{ flex: 1 }}>
             <label style={styles.label}>Gender</label>
             <select
+              value={metadata.gender}
               onChange={(e) =>
                 setMetadata({ ...metadata, gender: e.target.value })
               }
@@ -101,6 +173,7 @@ const LensTab = ({ onListingSaved }) => {
 
         <label style={styles.label}>Fabric (for Water Impact)</label>
         <select
+          value={metadata.fabric}
           onChange={(e) => setMetadata({ ...metadata, fabric: e.target.value })}
           style={styles.input}
         >
@@ -110,12 +183,14 @@ const LensTab = ({ onListingSaved }) => {
         </select>
 
         <button
-          onClick={() =>
-            onListingSaved({ ...metadata, preview }, currentSavings)
-          }
-          style={styles.primaryBtn}
+          onClick={handleSaveListing}
+          disabled={isSaving || !metadata.title || !metadata.price}
+          style={{
+            ...styles.primaryBtn,
+            opacity: isSaving || !metadata.title || !metadata.price ? 0.6 : 1,
+          }}
         >
-          Confirm & List
+          {isSaving ? "Saving..." : "Confirm & List"}
         </button>
       </div>
     );
@@ -123,12 +198,8 @@ const LensTab = ({ onListingSaved }) => {
   return (
     <div style={{ textAlign: "center", paddingTop: "100px" }}>
       <label style={styles.uploadBtn}>
-        📸 Upload Photo
-        <input
-          type="file"
-          onChange={handleUpload}
-          style={{ display: "none" }}
-        />
+        Upload Photo
+        <input type="file" accept="image/*" onChange={handleUpload} style={{ display: "none" }} />
       </label>
     </div>
   );

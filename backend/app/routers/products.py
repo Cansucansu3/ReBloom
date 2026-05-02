@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models, auth
@@ -47,15 +48,48 @@ def get_products(
     skip: int = 0,
     limit: int = 100,
     category: str = None,
+    q: str = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(models.Product).filter(models.Product.is_active == True)
     
     if category:
         query = query.filter(models.Product.category == category)
+
+    if q:
+        search_term = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                models.Product.title.ilike(search_term),
+                models.Product.description.ilike(search_term),
+                models.Product.brand.ilike(search_term),
+                models.Product.category.ilike(search_term),
+                models.Product.subcategory.ilike(search_term),
+                models.Product.material.ilike(search_term),
+                models.Product.color.ilike(search_term),
+            )
+        )
     
     products = query.offset(skip).limit(limit).all()
     return products
+
+@router.get("/mine", response_model=List[schemas.ProductResponse])
+def get_my_products(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    seller = db.query(models.SellerProfile).filter(
+        models.SellerProfile.user_id == current_user.user_id
+    ).first()
+
+    if not seller:
+        return []
+
+    return db.query(models.Product).filter(
+        models.Product.seller_id == seller.seller_id,
+        models.Product.source_platform == "lens",
+        models.Product.is_active == True
+    ).order_by(models.Product.created_at.desc()).all()
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):

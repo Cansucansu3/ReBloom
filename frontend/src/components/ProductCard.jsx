@@ -1,11 +1,12 @@
 import React from "react";
 import { calculateSavings } from "../utils/gamificationLogic";
 
-const ProductCard = ({ item }) => {
+const ProductCard = ({ item, onClick }) => {
   const savings = calculateSavings(item.fabric, item.weight);
 
   return (
     <div
+      onClick={onClick}
       style={{
         border: "1px solid #ddd",
         borderRadius: "12px",
@@ -13,6 +14,7 @@ const ProductCard = ({ item }) => {
         margin: "10px",
         padding: "10px",
         backgroundColor: "white",
+        cursor: "pointer",
       }}
     >
       <img

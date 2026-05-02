@@ -1,0 +1,6 @@
+product_id,title,category,subcategory,brand,color,size,material,price,image_path,description
+1,Vintage Levi's 501 Jeans,pants,jeans,Levi's,blue,M,Denim,650,images/levis_501.jpg,Classic second-hand denim jeans in good condition.
+2,Organic Cotton White Tee,tops,t-shirt,Everlane,white,S,Cotton,220,images/white_tee.jpg,Soft cotton T-shirt ready for a second life.
+3,Black Velvet Jacket,outerwear,jacket,BDG,black,M,Polyester,980,images/black_jacket.jpg,Statement jacket with a soft velvet finish.
+4,Denim Mini Skirt,skirts,mini skirt,Mango,light blue,S,Denim,420,images/denim_skirt.jpg,Light-wash denim skirt with a casual fit.
+5,Cotton Summer Dress,dresses,summer dress,Zara,green,M,Cotton,760,images/summer_dress.jpg,Breathable cotton dress for warm days.
