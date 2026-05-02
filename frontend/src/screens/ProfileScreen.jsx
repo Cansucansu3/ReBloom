@@ -170,14 +170,14 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
             style={{
               height: "100%",
               backgroundColor: "#4A90E2",
-              width: `${Math.min((totalWaterSaved / 20000) * 100, 100)}%`,
+              width: `${Math.min((totalWaterSaved / 500000) * 100, 100)}%`,
               transition: "width 0.5s",
             }}
           ></div>
         </div>
 
         <p style={{ fontWeight: "bold", marginTop: "10px" }}>
-          {totalWaterSaved.toLocaleString()} / 20,000 L saved
+          {totalWaterSaved.toLocaleString()} / 500000 L saved
         </p>
       </div>
     </div>
