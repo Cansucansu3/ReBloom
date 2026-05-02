@@ -37,7 +37,9 @@ async function request(path, options = {}) {
     } catch {
       message = response.statusText || message;
     }
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();

@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from app.database import engine, Base
 from app.routers import users, products, cart, checkout, leaderboard, interactions, impact, search, outfit, gamification, recommendations
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ReBloom API", description="Sustainable Circular Fashion Platform", version="4.0.0")
+
+PRODUCT_IMAGES_DIR = Path(__file__).resolve().parents[1] / "static" / "product_images"
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +31,11 @@ app.include_router(outfit.router)
 app.include_router(gamification.router)
 app.include_router(recommendations.router)
 app.include_router(recommendations.product_router)
+app.mount(
+    "/static/product_images",
+    StaticFiles(directory=str(PRODUCT_IMAGES_DIR), check_dir=False),
+    name="product_images",
+)
 
 @app.get("/")
 def root():

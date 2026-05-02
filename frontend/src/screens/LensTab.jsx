@@ -8,6 +8,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [metadata, setMetadata] = useState({
     title: "",
+    category: "tops",
     brand: "",
     size: "M",
     color: "",
@@ -43,7 +44,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
       const savedProduct = await createProduct({
         title: metadata.title,
         description: metadata.title,
-        category: "clothing",
+        category: metadata.category,
         subcategory: metadata.gender,
         brand: metadata.brand,
         color: metadata.color,
@@ -97,6 +98,22 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           onChange={(e) => setMetadata({ ...metadata, price: e.target.value })}
           style={styles.input}
         />
+
+        <label style={styles.label}>Category</label>
+        <select
+          value={metadata.category}
+          onChange={(e) => setMetadata({ ...metadata, category: e.target.value })}
+          style={styles.input}
+        >
+          <option value="tops">Tops</option>
+          <option value="pants">Pants</option>
+          <option value="shorts">Shorts</option>
+          <option value="skirts">Skirts</option>
+          <option value="dresses">Dresses</option>
+          <option value="shoes">Shoes</option>
+          <option value="bags">Bags</option>
+          <option value="outerwear">Outerwear</option>
+        </select>
 
         <div style={styles.row}>
           <div style={{ flex: 1 }}>

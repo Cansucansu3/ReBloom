@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { clearToken, getMe, getToken, login, register } from "../api/api";
 import { getTreeStage } from "../utils/gamificationLogic";
 
-const ProfileScreen = ({ totalWaterSaved }) => {
+const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
   const currentStage = getTreeStage(totalWaterSaved);
   const [mode, setMode] = useState("login");
   const [user, setUser] = useState(null);
@@ -19,7 +19,11 @@ const ProfileScreen = ({ totalWaterSaved }) => {
 
     getMe()
       .then(setUser)
-      .catch(() => clearToken());
+      .catch((err) => {
+        if (err.status === 401) {
+          clearToken();
+        }
+      });
   }, []);
 
   const handleSubmit = async (event) => {
@@ -39,6 +43,7 @@ const ProfileScreen = ({ totalWaterSaved }) => {
       await login(form.email, form.password);
       const profile = await getMe();
       setUser(profile);
+      onAuthChange?.();
     } catch (err) {
       setError(err.message);
     }
@@ -47,6 +52,7 @@ const ProfileScreen = ({ totalWaterSaved }) => {
   const handleLogout = () => {
     clearToken();
     setUser(null);
+    onAuthChange?.();
   };
 
   return (

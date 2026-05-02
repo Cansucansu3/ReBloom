@@ -15,6 +15,62 @@ from app.database import get_db
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 product_router = APIRouter(prefix="/products", tags=["Recommendations"])
 
+OUTFIT_SLOT_SIZE = 4
+OUTFIT_PREFILTER_LIMIT = 20
+AI_OUTFIT_TIMEOUT = float(os.getenv("REBLOOM_AI_OUTFIT_TIMEOUT", "15"))
+
+OUTFIT_CATEGORY_SLOTS = {
+    "tops": ["pants", "skirts", "shoes", "bags"],
+    "pants": ["tops", "shoes", "bags"],
+    "shorts": ["tops", "shoes", "bags"],
+    "skirts": ["tops", "shoes", "bags"],
+    "dresses": ["shoes", "bags", "outerwear"],
+    "outerwear": ["tops", "dresses", "pants", "skirts", "shoes"],
+    "shoes": ["tops", "pants", "skirts", "dresses", "bags"],
+    "bags": ["dresses", "tops", "pants", "skirts", "shoes"],
+    "clothing": ["tops", "pants", "skirts", "shoes", "bags"],
+}
+
+OUTFIT_SLOT_TITLES = {
+    "tops": "Tops",
+    "pants": "Pants",
+    "shorts": "Shorts",
+    "skirts": "Skirts",
+    "dresses": "Dresses",
+    "shoes": "Shoes",
+    "bags": "Bags",
+    "outerwear": "Outerwear",
+}
+
+NEUTRAL_COLORS = {
+    "black",
+    "white",
+    "grey",
+    "gray",
+    "beige",
+    "cream",
+    "brown",
+    "navy",
+    "silver",
+    "gold",
+}
+
+COLOR_PAIRS = {
+    frozenset(("blue", "white")),
+    frozenset(("blue", "black")),
+    frozenset(("blue", "red")),
+    frozenset(("blue", "beige")),
+    frozenset(("blue", "grey")),
+    frozenset(("navy", "white")),
+    frozenset(("navy", "beige")),
+    frozenset(("black", "white")),
+    frozenset(("black", "red")),
+    frozenset(("green", "white")),
+    frozenset(("green", "brown")),
+    frozenset(("pink", "white")),
+    frozenset(("purple", "white")),
+}
+
 
 def product_to_dict(product):
     return {
@@ -68,7 +124,20 @@ def normalize_category(category):
         "trouser": "pants",
         "trousers": "pants",
         "pant": "pants",
+        "short": "shorts",
+        "shorts": "shorts",
         "dress": "dresses",
+        "skirt": "skirts",
+        "shoe": "shoes",
+        "shoes": "shoes",
+        "sneaker": "shoes",
+        "sneakers": "shoes",
+        "heel": "shoes",
+        "heels": "shoes",
+        "sandal": "shoes",
+        "sandals": "shoes",
+        "flat": "shoes",
+        "flats": "shoes",
         "handbag": "bags",
         "handbags": "bags",
         "bag": "bags",
@@ -90,9 +159,11 @@ def infer_outfit_category(product):
     )
     title_aliases = [
         (("t-shirt", "tshirt", "shirt", "tee", "blouse", "top"), "tops"),
+        (("shorts",), "shorts"),
         (("skirt",), "skirts"),
         (("jean", "pants", "trouser"), "pants"),
         (("dress",), "dresses"),
+        (("shoe", "sneaker", "heel", "sandal", "flat"), "shoes"),
         (("jacket", "coat", "outerwear"), "outerwear"),
         (("bag", "handbag", "purse"), "bags"),
     ]
@@ -109,9 +180,150 @@ def ai_product_payload(product):
         "product_id": product.product_id,
         "title": product.title,
         "category": product.category,
+        "subcategory": product.subcategory,
         "color": product.color,
         "image_url": product.image_url,
     }
+
+
+def normalize_color(color):
+    value = str(color or "").strip().lower()
+    if not value:
+        return ""
+
+    if "navy" in value:
+        return "navy"
+    if "grey" in value or "gray" in value:
+        return "grey"
+    if "blue" in value:
+        return "blue"
+    if "black" in value:
+        return "black"
+    if "white" in value:
+        return "white"
+    if "beige" in value or "cream" in value:
+        return "beige"
+    if "brown" in value or "coffee" in value:
+        return "brown"
+    if "red" in value:
+        return "red"
+    if "green" in value or "olive" in value:
+        return "green"
+    if "pink" in value:
+        return "pink"
+    if "purple" in value or "violet" in value:
+        return "purple"
+    if "yellow" in value or "gold" in value:
+        return "gold"
+    if "silver" in value:
+        return "silver"
+
+    return value.split()[0]
+
+
+def score_color_compatibility(base_color, candidate_color):
+    base = normalize_color(base_color)
+    candidate = normalize_color(candidate_color)
+
+    if not base or not candidate:
+        return 0.4
+    if base == candidate:
+        return 0.8
+    if base in NEUTRAL_COLORS or candidate in NEUTRAL_COLORS:
+        return 1.4
+    if frozenset((base, candidate)) in COLOR_PAIRS:
+        return 1.8
+    return 0.2
+
+
+def score_outfit_metadata(base_product, candidate, target_category):
+    candidate_category = infer_outfit_category(candidate)
+    score = 0.0
+
+    if candidate_category == target_category:
+        score += 4.0
+    if candidate_category == infer_outfit_category(base_product):
+        score -= 4.0
+
+    score += score_color_compatibility(base_product.color, candidate.color)
+
+    if base_product.material and candidate.material:
+        if base_product.material == candidate.material:
+            score += 0.3
+        elif normalize_category(candidate_category) in {"shoes", "bags"}:
+            score += 0.2
+
+    if base_product.brand and candidate.brand and base_product.brand == candidate.brand:
+        score += 0.2
+
+    return score
+
+
+def build_outfit_groups(base_product, candidates):
+    base_category = infer_outfit_category(base_product)
+    target_categories = OUTFIT_CATEGORY_SLOTS.get(base_category, OUTFIT_CATEGORY_SLOTS["clothing"])
+    groups = {}
+    flat_scored = []
+    used_product_ids = set()
+    scoring_modes = set()
+
+    for target_category in target_categories:
+        slot_candidates = [
+            candidate for candidate in candidates
+            if infer_outfit_category(candidate) == target_category
+        ]
+        if not slot_candidates:
+            continue
+
+        prefiltered = sorted(
+            (
+                (score_outfit_metadata(base_product, candidate, target_category), candidate)
+                for candidate in slot_candidates
+            ),
+            key=lambda item: item[0],
+            reverse=True,
+        )[:OUTFIT_PREFILTER_LIMIT]
+
+        prefilter_products = [candidate for _, candidate in prefiltered]
+        ai_scores = get_ai_outfit_scores(
+            base_product,
+            prefilter_products,
+            limit=min(OUTFIT_SLOT_SIZE * 2, len(prefilter_products)),
+        )
+        scoring_modes.add("ai-service" if ai_scores else "metadata-fallback")
+
+        scored = []
+        for metadata_score, candidate in prefiltered:
+            ai_score = ai_scores.get(candidate.product_id)
+            final_score = metadata_score
+            if ai_score is not None:
+                final_score += ai_score * 10
+            scored.append((final_score, candidate))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        selected = []
+
+        for score, candidate in scored:
+            if candidate.product_id in used_product_ids:
+                continue
+
+            selected.append(product_to_dict(candidate))
+            used_product_ids.add(candidate.product_id)
+            flat_scored.append((score, candidate))
+
+            if len(selected) >= OUTFIT_SLOT_SIZE:
+                break
+
+        if selected:
+            groups[target_category] = {
+                "title": OUTFIT_SLOT_TITLES.get(target_category, target_category.title()),
+                "products": selected,
+            }
+
+    flat_scored.sort(key=lambda item: item[0], reverse=True)
+    scoring = "ai-service" if "ai-service" in scoring_modes else "metadata-fallback"
+
+    return groups, flat_scored, scoring, base_category, target_categories
 
 
 def get_ai_outfit_scores(base_product, candidates, limit=6):
@@ -129,7 +341,7 @@ def get_ai_outfit_scores(base_product, candidates, limit=6):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=AI_OUTFIT_TIMEOUT) as response:
             data = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError, OSError):
         return {}
@@ -352,48 +564,25 @@ def recommend_outfit(
     db: Session = Depends(get_db),
 ):
     base_product = get_active_product_or_404(product_id, db)
-    compatible_categories = {
-        "tops": ["pants", "skirts", "outerwear"],
-        "pants": ["tops", "outerwear"],
-        "skirts": ["tops", "outerwear"],
-        "dresses": ["outerwear", "bags"],
-        "outerwear": ["tops", "dresses", "pants", "skirts"],
-        "bags": ["dresses", "tops", "pants", "skirts"],
-        "clothing": ["outerwear", "pants", "skirts", "tops"],
-    }
-    base_category = infer_outfit_category(base_product)
-    target_categories = compatible_categories.get(base_category, [])
-
-    query = db.query(models.Product).filter(
-        models.Product.product_id != product_id,
-        models.Product.is_active == True,
+    candidates = (
+        db.query(models.Product)
+        .filter(
+            models.Product.product_id != product_id,
+            models.Product.is_active == True,
+        )
+        .all()
     )
-
-    candidates = query.all()
-    if target_categories:
-        candidates = [
-            candidate for candidate in candidates
-            if infer_outfit_category(candidate) in target_categories
-        ]
-
-    ai_scores = get_ai_outfit_scores(base_product, candidates)
-    scored = []
-
-    for candidate in candidates:
-        metadata_score = score_product_similarity(base_product, candidate)
-        ai_score = ai_scores.get(candidate.product_id)
-        final_score = metadata_score
-
-        if ai_score is not None:
-            final_score += ai_score * 10
-
-        scored.append((final_score, candidate))
-
-    scored.sort(key=lambda item: item[0], reverse=True)
+    groups, scored, scoring, base_category, target_categories = build_outfit_groups(
+        base_product,
+        candidates,
+    )
 
     return {
         "title": "Complete the Look",
         "base_product": product_to_dict(base_product),
-        "scoring": "ai-service" if ai_scores else "metadata-fallback",
+        "base_category": base_category,
+        "target_categories": target_categories,
+        "scoring": scoring,
+        "groups": groups,
         "products": [product_to_dict(product) for _, product in scored[:6]],
     }

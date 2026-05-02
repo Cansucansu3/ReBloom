@@ -12,6 +12,7 @@ class ProductPayload(BaseModel):
     product_id: int
     image_url: str | None = None
     category: str | None = None
+    subcategory: str | None = None
     color: str | None = None
     title: str | None = None
 
@@ -51,9 +52,9 @@ def outfit_rank(payload: OutfitRankRequest):
 
 @app.post("/visual-search")
 def visual_search(payload: VisualSearchRequest):
-    ranked = rank_visual_candidates(
+    ranked, preprocessing, predicted = rank_visual_candidates(
         payload.query_image,
         [dump_model(candidate) for candidate in payload.candidates],
         limit=payload.limit,
     )
-    return {"ranked": ranked}
+    return {"ranked": ranked, "preprocessing": preprocessing, "predicted": predicted}

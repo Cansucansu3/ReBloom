@@ -5,7 +5,13 @@ import ProfileScreen from "./screens/ProfileScreen";
 import ProductDetail from "./screens/ProductDetail";
 import HomeScreen from "./screens/HomeScreen";
 import OutfitScreen from "./screens/OutfitScreen";
-import { getMyProducts, recordSearch, visualSearchProducts } from "./api/api";
+import {
+  clearToken,
+  getMyProducts,
+  getToken,
+  recordSearch,
+  visualSearchProducts,
+} from "./api/api";
 
 function App() {
   useEffect(() => {
@@ -31,8 +37,29 @@ function App() {
       .then((products) => {
         setMyItems(products.map(mapProductToMyItem));
       })
-      .catch(() => {});
+      .catch((err) => {
+        setMyItems([]);
+        if (err.status === 401) {
+          clearToken();
+          setView("profile");
+        }
+      });
   }, [view]);
+
+  const showProfile = () => {
+    setMyItems([]);
+    setView("profile");
+  };
+
+  const showMyItems = () => {
+    if (!getToken()) {
+      setMyItems([]);
+      setView("profile");
+      return;
+    }
+
+    setView("myItems");
+  };
 
   const handleFinalizeListing = (newItem, savings) => {
     setMyItems((currentItems) => [
@@ -141,26 +168,20 @@ function App() {
               >
                 <span style={styles.cameraIconWrap} aria-hidden="true">
                   <svg
-                    viewBox="0 0 24 24"
-                    width="20"
-                    height="20"
+                    viewBox="0 0 32 32"
+                    width="24"
+                    height="24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="2.3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <path d="M14.5 5.5 13 3H8L6.5 5.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-4" />
-                    <circle cx="10.5" cy="12.5" r="3.5" />
-                  </svg>
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="11"
-                    height="11"
-                    fill="currentColor"
-                    style={styles.sparkleIcon}
-                  >
-                    <path d="M12 2.5 14.2 8l5.8 2-5.8 2L12 17.5 9.8 12 4 10l5.8-2L12 2.5Z" />
+                    <path d="M7.5 11.5h3L12.3 8h7.4l1.8 3.5h3a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-17a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" />
+                    <circle cx="15.5" cy="18" r="4.7" />
+                    <path d="m19 21.5 5 5" />
+                    <path d="M21.4 8.7c.4-2.7 2.1-4.5 5.1-5.2.3 2.8-.9 4.8-3.6 6" />
+                    <path d="M21.6 8.8c-1.5-2-3.5-2.8-5.9-2.2.9 2.2 2.5 3.3 5 3.4" />
                   </svg>
                 </span>
               </button>
@@ -203,7 +224,10 @@ function App() {
             )}
 
             {view === "profile" && (
-              <ProfileScreen totalWaterSaved={totalWaterSaved} />
+              <ProfileScreen
+                totalWaterSaved={totalWaterSaved}
+                onAuthChange={() => setMyItems([])}
+              />
             )}
 
             {view === "myItems" && (
@@ -259,10 +283,10 @@ function App() {
             <button onClick={() => setView("lens")} style={styles.navItem}>
               Lens
             </button>
-            <button onClick={() => setView("myItems")} style={styles.navItem}>
+            <button onClick={showMyItems} style={styles.navItem}>
               My Items
             </button>
-            <button onClick={() => setView("profile")} style={styles.navItem}>
+            <button onClick={showProfile} style={styles.navItem}>
               Profile
             </button>
           </nav>
@@ -317,14 +341,8 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "22px",
-    height: "22px",
-  },
-  sparkleIcon: {
-    position: "absolute",
-    right: "-5px",
-    top: "-6px",
-    color: "#f4c542",
+    width: "24px",
+    height: "24px",
   },
   navBar: {
     position: "fixed",

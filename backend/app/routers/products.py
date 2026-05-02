@@ -87,6 +87,7 @@ def get_my_products(
 
     return db.query(models.Product).filter(
         models.Product.seller_id == seller.seller_id,
+        models.Product.source_platform == "lens",
         models.Product.is_active == True
     ).order_by(models.Product.created_at.desc()).all()
 

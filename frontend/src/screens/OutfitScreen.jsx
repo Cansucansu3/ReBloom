@@ -33,6 +33,7 @@ const toCardItem = (product) => ({
 const OutfitScreen = ({ item, onBack, onProductSelect }) => {
   const [status, setStatus] = useState("loading");
   const [products, setProducts] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -40,9 +41,19 @@ const OutfitScreen = ({ item, onBack, onProductSelect }) => {
     if (!productId) return;
 
     setStatus("loading");
+    setGroups([]);
     getOutfitRecommendations(productId)
       .then((data) => {
         setProducts(data.products || []);
+        setGroups(
+          Object.entries(data.groups || {})
+            .map(([key, group]) => ({
+              key,
+              title: group.title || key,
+              products: group.products || [],
+            }))
+            .filter((group) => group.products.length > 0)
+        );
         setStatus("ready");
       })
       .catch((err) => {
@@ -69,10 +80,28 @@ const OutfitScreen = ({ item, onBack, onProductSelect }) => {
 
       {status === "loading" && <p style={styles.message}>Loading outfit ideas...</p>}
       {status === "error" && <p style={styles.error}>Could not load outfits: {error}</p>}
-      {status === "ready" && products.length === 0 && (
+      {status === "ready" && groups.length === 0 && products.length === 0 && (
         <p style={styles.message}>No outfit matches found yet.</p>
       )}
-      {status === "ready" && products.length > 0 && (
+      {status === "ready" && groups.length > 0 && (
+        <div style={styles.groupWrap}>
+          {groups.map((group) => (
+            <section key={group.key} style={styles.groupSection}>
+              <h2 style={styles.groupTitle}>{group.title}</h2>
+              <div style={styles.grid}>
+                {group.products.map((product) => (
+                  <ProductCard
+                    key={product.product_id}
+                    item={toCardItem(product)}
+                    onClick={() => onProductSelect(toDetailItem(product))}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+      {status === "ready" && groups.length === 0 && products.length > 0 && (
         <div style={styles.grid}>
           {products.map((product) => (
             <ProductCard
@@ -140,7 +169,19 @@ const styles = {
     display: "flex",
     flexWrap: "wrap",
     justifyContent: "center",
-    padding: "20px",
+    padding: "8px 20px 18px",
+  },
+  groupWrap: {
+    paddingTop: "18px",
+  },
+  groupSection: {
+    marginBottom: "14px",
+  },
+  groupTitle: {
+    margin: "0",
+    padding: "0 24px",
+    color: "#2d5a27",
+    fontSize: "18px",
   },
   message: {
     textAlign: "center",
