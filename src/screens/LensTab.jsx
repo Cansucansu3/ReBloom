@@ -56,7 +56,7 @@ const LensTab = ({ onListingSaved }) => {
               onChange={(e) =>
                 setMetadata({ ...metadata, brand: e.target.value })
               }
-              style={styles.input}
+              style={styles.input}.
             />
           </div>
           <div style={{ flex: 1 }}>
@@ -71,7 +71,6 @@ const LensTab = ({ onListingSaved }) => {
             />
           </div>
         </div>
-
         <div style={styles.row}>
           <div style={{ flex: 1 }}>
             <label style={styles.label}>Color</label>

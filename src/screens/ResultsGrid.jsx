@@ -9,7 +9,8 @@ const ResultsGrid = () => {
       price: 650,
       fabric: "Denim",
       weight: 0.8,
-      image: "https://via.placeholder.com/150",
+      image:
+        "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=400",
     },
     {
       id: 2,
@@ -17,7 +18,8 @@ const ResultsGrid = () => {
       price: 180,
       fabric: "Cotton",
       weight: 0.2,
-      image: "https://via.placeholder.com/150",
+      image:
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=400",
     },
   ];
 

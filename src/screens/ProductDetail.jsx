@@ -25,15 +25,19 @@ const ProductDetail = ({ item, onBack }) => {
       {/* Navigation Header */}
       <div style={{ display: "flex", alignItems: "center", padding: "10px" }}>
         <button
-          onClick={onBack}
+          onClick={() => onAddToCart()} // Trigger the parent's function
           style={{
-            background: "none",
+            width: "100%",
+            padding: "15px",
+            borderRadius: "30px",
             border: "none",
+            background: "#00d285",
+            color: "white",
+            fontWeight: "bold",
             cursor: "pointer",
-            fontSize: "24px",
           }}
         >
-          ←
+          Add to Cart
         </button>
       </div>
 
@@ -97,7 +101,7 @@ const ProductDetail = ({ item, onBack }) => {
               cursor: "pointer",
             }}
           >
-            Sepete Ekle
+            Add to Cart
           </button>
         </div>
       </div>
@@ -108,11 +112,9 @@ const ProductDetail = ({ item, onBack }) => {
 
       {/* User Comments Section */}
       <div style={{ padding: "0 20px" }}>
-        <h3 style={{ marginBottom: "15px" }}>Yorumlar</h3>
+        <h3 style={{ marginBottom: "15px" }}>Comments</h3>
         {comments.length === 0 ? (
-          <p style={{ color: "#999", fontSize: "14px" }}>
-            Henüz yorum yok. İlk yorumu sen yap!
-          </p>
+          <p style={{ color: "#999", fontSize: "14px" }}>No comments yet.</p>
         ) : (
           comments.map((c, i) => (
             <p
