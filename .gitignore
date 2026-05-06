@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+local_datasets/
+ai_service/models/rembg/
+backend/static/product_images/
+venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# Workspace 
+*.code-workspace
 
 # Editor directories and files
 .vscode/*

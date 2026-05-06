@@ -1,0 +1,9 @@
+numpy
+pillow
+torch
+torchvision
+git+https://github.com/openai/CLIP.git
+fastapi
+uvicorn
+joblib
+scikit-learn==1.6.1
