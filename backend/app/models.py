@@ -75,6 +75,8 @@ class Product(Base):
     size = Column(String)
     condition = Column(String)
     material = Column(String)
+    weight_kg = Column(Float, nullable=True)
+    water_saved_liters = Column(Float, nullable=True)
     price = Column(Float, nullable=False)
     image_url = Column(String)
     source_platform = Column(String)  # Zara, Mango, User Listing, Vintage Shop

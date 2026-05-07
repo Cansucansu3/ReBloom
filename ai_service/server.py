@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from services.compatibility_service import rank_outfit_candidates
+from services.item_analysis_service import analyze_item_image
 from services.visual_search_service import rank_visual_candidates
 
 
@@ -27,6 +28,10 @@ class VisualSearchRequest(BaseModel):
     query_image: str
     candidates: list[ProductPayload]
     limit: int = 12
+
+
+class AnalyzeItemRequest(BaseModel):
+    query_image: str
 
 
 def dump_model(model):
@@ -58,3 +63,8 @@ def visual_search(payload: VisualSearchRequest):
         limit=payload.limit,
     )
     return {"ranked": ranked, "preprocessing": preprocessing, "predicted": predicted}
+
+
+@app.post("/analyze-item")
+def analyze_item(payload: AnalyzeItemRequest):
+    return analyze_item_image(payload.query_image)

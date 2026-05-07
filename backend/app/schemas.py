@@ -45,6 +45,7 @@ class ProductCreate(BaseModel):
     size: Optional[str] = None
     condition: Optional[str] = None
     material: Optional[str] = None
+    weight_kg: Optional[float] = None
     price: float
     image_url: Optional[str] = None
     source_platform: Optional[str] = None
@@ -55,6 +56,8 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     price: Optional[float] = None
     condition: Optional[str] = None
+    material: Optional[str] = None
+    weight_kg: Optional[float] = None
     is_active: Optional[bool] = None
 
 class ProductResponse(BaseModel):
@@ -69,6 +72,8 @@ class ProductResponse(BaseModel):
     size: Optional[str]
     condition: Optional[str]
     material: Optional[str]
+    weight_kg: Optional[float] = None
+    water_saved_liters: Optional[float] = None
     price: float
     image_url: Optional[str]
     is_second_hand: bool

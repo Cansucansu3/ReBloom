@@ -109,7 +109,9 @@ const ResultsGrid = ({
               condition: product.condition,
               material: product.material,
               fabric: product.material || product.brand || product.category,
-              weight: product.is_second_hand ? "Second-hand" : "New",
+              weight: product.weight_kg,
+              weight_kg: product.weight_kg,
+              water_saved_liters: product.water_saved_liters,
               image: product.image_url,
             })
           }
@@ -117,8 +119,9 @@ const ResultsGrid = ({
             id: product.product_id,
             title: product.title,
             price: product.price,
-            fabric: product.brand || product.category,
-            weight: product.is_second_hand ? "Second-hand" : "New",
+            fabric: product.material || product.brand || product.category,
+            weight: product.weight_kg,
+            waterSaved: product.water_saved_liters,
             image: product.image_url,
           }}
         />

@@ -1,18 +1,56 @@
-// Formulas from SRS Equation 2.1 [cite: 177, 966, 967]
 const WATER_FOOTPRINTS = {
-  Cotton: 10000,
-  Denim: 8000,
-  Polyester: 100,
+  cotton: 10000,
+  denim: 8000,
+  polyester: 100,
+  "recycled polyester": 60,
+  synthetic: 500,
+  "faux leather": 900,
+  canvas: 4000,
+  "cotton blend": 5000,
+};
+
+const normalizeMaterial = (value) => {
+  const text = String(value || "").trim().toLowerCase();
+
+  if (text.includes("recycled") && text.includes("polyester")) {
+    return "recycled polyester";
+  }
+  if (text.includes("faux") && text.includes("leather")) {
+    return "faux leather";
+  }
+  if (text.includes("cotton") && text.includes("blend")) {
+    return "cotton blend";
+  }
+
+  return Object.keys(WATER_FOOTPRINTS).find((material) => text.includes(material)) || text;
+};
+
+const parseComposition = (fabric) => {
+  const text = String(fabric || "").trim();
+  const matches = [...text.matchAll(/(\d+(?:\.\d+)?)\s*%\s*([A-Za-z ]+)/g)];
+
+  if (!matches.length) {
+    return [[normalizeMaterial(text) || "cotton blend", 1]];
+  }
+
+  const parts = matches.map((match) => [
+    normalizeMaterial(match[2]),
+    Number(match[1]) / 100,
+  ]);
+  const total = parts.reduce((sum, [, share]) => sum + share, 0) || 1;
+
+  return parts.map(([material, share]) => [material, share / total]);
 };
 
 export const calculateSavings = (fabric, weightKg) => {
-  const normalizedFabric =
-    typeof fabric === "string"
-      ? fabric.charAt(0).toUpperCase() + fabric.slice(1).toLowerCase()
-      : "";
   const numericWeight = Number(weightKg);
-  const footprint = WATER_FOOTPRINTS[normalizedFabric] || 1000;
-  return Math.round(footprint * (Number.isFinite(numericWeight) ? numericWeight : 1));
+  const weight = Number.isFinite(numericWeight) && numericWeight > 0 ? numericWeight : 0.5;
+  const footprint = parseComposition(fabric).reduce(
+    (sum, [material, share]) => sum + (WATER_FOOTPRINTS[material] || 1000) * share,
+    0
+  );
+
+  return Math.round(footprint * weight);
 };
 
 export const getTreeStage = (score) => {

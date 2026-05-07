@@ -14,6 +14,14 @@ from app.services.image_similarity import find_visually_similar_products, image_
 router = APIRouter(prefix="/search", tags=["Search"])
 
 AI_VISUAL_SEARCH_TIMEOUT = float(os.getenv("REBLOOM_AI_VISUAL_TIMEOUT", "20"))
+MAX_ANALYZE_IMAGE_BYTES = 5 * 1024 * 1024
+ALLOWED_ANALYZE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+}
+ALLOWED_ANALYZE_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 
 
 def product_to_dict(product, score=None):
@@ -29,6 +37,8 @@ def product_to_dict(product, score=None):
         "size": product.size,
         "condition": product.condition,
         "material": product.material,
+        "weight_kg": product.weight_kg,
+        "water_saved_liters": product.water_saved_liters,
         "price": product.price,
         "image_url": product.image_url,
         "is_second_hand": product.is_second_hand,
@@ -86,6 +96,42 @@ def get_ai_visual_scores(image_content, content_type, candidates, limit=12):
         data.get("preprocessing") or "original",
         data.get("predicted"),
     )
+
+
+def validate_uploaded_image(file, image_content):
+    content_type = (file.content_type or "").lower()
+    filename = (file.filename or "").lower()
+    has_allowed_suffix = any(
+        filename.endswith(suffix) for suffix in ALLOWED_ANALYZE_SUFFIXES
+    )
+
+    if len(image_content) > MAX_ANALYZE_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Image must be 5MB or smaller")
+
+    if content_type not in ALLOWED_ANALYZE_TYPES and not has_allowed_suffix:
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a JPEG, PNG, or HEIC image",
+        )
+
+    if not image_content:
+        raise HTTPException(status_code=400, detail="Image file is empty")
+
+
+def get_ai_item_analysis(image_content, content_type):
+    service_url = os.getenv("REBLOOM_AI_SERVICE_URL", "http://127.0.0.1:8010").rstrip("/")
+    payload = {
+        "query_image": image_bytes_to_data_url(image_content, content_type),
+    }
+
+    request = urllib.request.Request(
+        f"{service_url}/analyze-item",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=AI_VISUAL_SEARCH_TIMEOUT) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 @router.post("/")
@@ -187,6 +233,21 @@ async def visual_search_products(
             for score, product in scored_products
         ],
     }
+
+
+@router.post("/analyze-item")
+async def analyze_uploaded_item(file: UploadFile = File(...)):
+    image_content = await file.read()
+    validate_uploaded_image(file, image_content)
+
+    try:
+        return await run_in_threadpool(
+            get_ai_item_analysis,
+            image_content,
+            file.content_type or "image/jpeg",
+        )
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        raise HTTPException(status_code=503, detail="AI item analysis is unavailable")
 
 @router.get("/history")
 def get_search_history(

@@ -101,6 +101,16 @@ export async function visualSearchProducts(file) {
   });
 }
 
+export async function analyzeItemImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return request("/search/analyze-item", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export async function getHomeRecommendations() {
   return request("/recommendations/home");
 }
@@ -115,6 +125,10 @@ export async function getSimilarProducts(productId) {
 
 export async function getOutfitRecommendations(productId) {
   return request(`/products/${productId}/outfit`);
+}
+
+export async function getMyImpact() {
+  return request("/impact/me");
 }
 
 export async function login(email, password) {

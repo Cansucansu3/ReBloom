@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { clearToken, getMe, getToken, login, register } from "../api/api";
+import { clearToken, getMe, getMyImpact, getToken, login, register } from "../api/api";
 import { getTreeStage } from "../utils/gamificationLogic";
 
+const WATER_GOAL_LITERS = 100000;
+
 const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
-  const currentStage = getTreeStage(totalWaterSaved);
+  const [impactWaterSaved, setImpactWaterSaved] = useState(totalWaterSaved || 0);
+  const currentStage = getTreeStage(impactWaterSaved);
   const [mode, setMode] = useState("login");
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -17,14 +20,23 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
   useEffect(() => {
     if (!getToken()) return;
 
-    getMe()
-      .then(setUser)
+    Promise.all([getMe(), getMyImpact()])
+      .then(([profile, impact]) => {
+        setUser(profile);
+        setImpactWaterSaved(Math.round(impact.total_water_saved_liters || 0));
+      })
       .catch((err) => {
         if (err.status === 401) {
           clearToken();
+          setImpactWaterSaved(0);
         }
       });
   }, []);
+
+  const refreshImpact = async () => {
+    const impact = await getMyImpact();
+    setImpactWaterSaved(Math.round(impact.total_water_saved_liters || 0));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -43,6 +55,7 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
       await login(form.email, form.password);
       const profile = await getMe();
       setUser(profile);
+      await refreshImpact();
       onAuthChange?.();
     } catch (err) {
       setError(err.message);
@@ -52,6 +65,7 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
   const handleLogout = () => {
     clearToken();
     setUser(null);
+    setImpactWaterSaved(0);
     onAuthChange?.();
   };
 
@@ -170,14 +184,14 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
             style={{
               height: "100%",
               backgroundColor: "#4A90E2",
-              width: `${Math.min((totalWaterSaved / 500000) * 100, 100)}%`,
+              width: `${Math.min((impactWaterSaved / WATER_GOAL_LITERS) * 100, 100)}%`,
               transition: "width 0.5s",
             }}
           ></div>
         </div>
 
         <p style={{ fontWeight: "bold", marginTop: "10px" }}>
-          {totalWaterSaved.toLocaleString()} / 500000 L saved
+          {impactWaterSaved.toLocaleString()} / {WATER_GOAL_LITERS.toLocaleString()} L saved
         </p>
       </div>
     </div>
