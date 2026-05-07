@@ -2,7 +2,10 @@ import React from "react";
 import { calculateSavings } from "../utils/gamificationLogic";
 
 const ProductCard = ({ item, onClick }) => {
-  const savings = calculateSavings(item.fabric, item.weight);
+  const savings = Math.round(
+    Number(item.waterSaved ?? item.water_saved_liters) ||
+      calculateSavings(item.fabric, item.weight)
+  );
 
   return (
     <div
@@ -38,7 +41,7 @@ const ProductCard = ({ item, onClick }) => {
           color: "#1976d2",
         }}
       >
-        💧 Saves {savings.toLocaleString()}L
+        Saves {savings.toLocaleString()}L
       </div>
     </div>
   );

@@ -404,6 +404,9 @@ function mapProductToMyItem(product) {
     subcategory: product.subcategory,
     material: product.material,
     fabric: product.material,
+    weight: product.weight_kg,
+    weight_kg: product.weight_kg,
+    water_saved_liters: product.water_saved_liters,
     status: "Active",
   };
 }

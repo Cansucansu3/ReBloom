@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { createProduct, getToken } from "../api/api";
-import { calculateSavings } from "../utils/gamificationLogic";
 
 const LensTab = ({ onListingSaved, onAuthRequired }) => {
   const [preview, setPreview] = useState(null);
@@ -13,7 +12,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
     size: "M",
     color: "",
     gender: "Unisex",
-    fabric: "Denim",
+    fabric: "100% Denim",
     weight: 0.5,
     price: "",
   });
@@ -37,7 +36,6 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
       return;
     }
 
-    const currentSavings = calculateSavings(metadata.fabric, metadata.weight);
     setIsSaving(true);
 
     try {
@@ -51,6 +49,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
         size: metadata.size,
         condition: "used",
         material: metadata.fabric,
+        weight_kg: Number(metadata.weight),
         price: Number(metadata.price),
         image_url: preview,
         source_platform: "lens",
@@ -62,8 +61,10 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           id: savedProduct.product_id,
           product_id: savedProduct.product_id,
           preview: savedProduct.image_url,
+          water_saved_liters: savedProduct.water_saved_liters,
+          weight_kg: savedProduct.weight_kg,
         },
-        currentSavings
+        savedProduct.water_saved_liters || 0
       );
       setStep(1);
       setPreview(null);
@@ -177,17 +178,32 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           onChange={(e) => setMetadata({ ...metadata, fabric: e.target.value })}
           style={styles.input}
         >
-          <option value="Denim">Denim</option>
-          <option value="Cotton">Cotton</option>
-          <option value="Polyester">Polyester</option>
+          <option value="100% Denim">100% Denim</option>
+          <option value="100% Cotton">100% Cotton</option>
+          <option value="100% Polyester">100% Polyester</option>
+          <option value="50% Cotton, 50% Polyester">50% Cotton, 50% Polyester</option>
+          <option value="80% Cotton, 20% Polyester">80% Cotton, 20% Polyester</option>
+          <option value="Faux leather">Faux leather</option>
+          <option value="Canvas">Canvas</option>
+          <option value="Recycled polyester">Recycled polyester</option>
         </select>
+
+        <label style={styles.label}>Weight (kg)</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.1"
+          value={metadata.weight}
+          onChange={(e) => setMetadata({ ...metadata, weight: e.target.value })}
+          style={styles.input}
+        />
 
         <button
           onClick={handleSaveListing}
-          disabled={isSaving || !metadata.title || !metadata.price}
+          disabled={isSaving || !metadata.title || !metadata.price || !metadata.weight}
           style={{
             ...styles.primaryBtn,
-            opacity: isSaving || !metadata.title || !metadata.price ? 0.6 : 1,
+            opacity: isSaving || !metadata.title || !metadata.price || !metadata.weight ? 0.6 : 1,
           }}
         >
           {isSaving ? "Saving..." : "Confirm & List"}

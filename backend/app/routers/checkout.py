@@ -3,32 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from app import models, auth, schemas
 from app.database import get_db
+from app.services.impact_service import estimate_product_water_saved
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"])
-
-def get_water_saved(category: str, condition: str) -> float:
-    # Get water factor from database
-    impact_factor = db.query(models.ProductImpactFactors).filter(
-        models.ProductImpactFactors.category == category
-    ).first()
-    
-    if impact_factor:
-        water = impact_factor.avg_water_liters
-    else:
-        water = 5000  # default
-    
-    # Condition multiplier
-    multiplier = 0.8
-    if condition == "new_with_tags":
-        multiplier = 1.0
-    elif condition == "like_new":
-        multiplier = 0.9
-    elif condition == "good":
-        multiplier = 0.8
-    elif condition == "fair":
-        multiplier = 0.7
-    
-    return water * multiplier
 
 @router.post("/", response_model=schemas.CheckoutResponse)
 def checkout(
@@ -56,8 +33,7 @@ def checkout(
         
         total_amount += product.price
         
-        # Calculate water saved
-        water_saved = get_water_saved(product.category or "tshirt", product.condition or "good")
+        water_saved = estimate_product_water_saved(product)
         total_water_saved += water_saved
         
         # Create order
@@ -116,11 +92,11 @@ def checkout(
 def get_tree_stage(water_saved: float):
     if water_saved < 100:
         return "seed"
-    elif water_saved < 1000:
-        return "sapling"
     elif water_saved < 5000:
+        return "sapling"
+    elif water_saved < 20000:
         return "young_tree"
-    elif water_saved < 10000:
+    elif water_saved < 100000:
         return "mature_oak"
     else:
         return "ancient_oak"

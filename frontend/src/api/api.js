@@ -117,6 +117,10 @@ export async function getOutfitRecommendations(productId) {
   return request(`/products/${productId}/outfit`);
 }
 
+export async function getMyImpact() {
+  return request("/impact/me");
+}
+
 export async function login(email, password) {
   const data = await request("/users/login", {
     method: "POST",

@@ -29,6 +29,8 @@ def product_to_dict(product, score=None):
         "size": product.size,
         "condition": product.condition,
         "material": product.material,
+        "weight_kg": product.weight_kg,
+        "water_saved_liters": product.water_saved_liters,
         "price": product.price,
         "image_url": product.image_url,
         "is_second_hand": product.is_second_hand,

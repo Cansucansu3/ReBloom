@@ -43,194 +43,232 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
   };
 
   return (
-    <div
-      style={{
-        paddingBottom: "100px",
-        backgroundColor: "#fff",
-        minHeight: "100vh",
-      }}
-    >
-      {/* Navigation Header */}
-      <div style={{ display: "flex", alignItems: "center", padding: "10px" }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "24px",
-          }}
-        >
-          ←
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <button onClick={onBack} style={styles.backButton}>
+          Back
+        </button>
+        <button onClick={handleAddToCart} style={styles.headerCartButton}>
+          Add to Cart
         </button>
       </div>
 
-      {/* Product Image */}
       <img
         src={item.preview || item.image}
-        style={{ width: "100%", height: "400px", objectFit: "cover" }}
-        alt="Product"
+        style={styles.productImage}
+        alt={item.title || "Product"}
       />
 
-      <div style={{ padding: "20px" }}>
-        {/* Item Metadata Display */}
-        <h2 style={{ margin: "0", fontSize: "22px" }}>{item.title}</h2>
-        <p
-          style={{
-            color: "#6200ee",
-            fontWeight: "bold",
-            fontSize: "16px",
-            margin: "5px 0",
-          }}
-        >
-          {item.brand}
-        </p>
-        <h3 style={{ fontSize: "26px", margin: "10px 0", color: "#333" }}>
-          {item.price} TL
-        </h3>
+      <div style={styles.content}>
+        <h2 style={styles.title}>{item.title}</h2>
+        <p style={styles.brand}>{item.brand}</p>
+        <h3 style={styles.price}>{item.price} TL</h3>
 
-        {/* Detailed Filters Display */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "15px",
-            margin: "20px 0",
-            fontSize: "15px",
-          }}
-        >
+        <div style={styles.metadataGrid}>
           <p>
-            📏 <strong>Size:</strong> {item.size}
+            <strong>Size:</strong> {item.size || "One Size"}
           </p>
           <p>
-            🎨 <strong>Color:</strong> {item.color}
+            <strong>Color:</strong> {item.color || "Unknown"}
           </p>
           <p>
-            🚻 <strong>Gender:</strong> {item.gender}
+            <strong>Gender:</strong> {item.gender || item.subcategory || "Unisex"}
+          </p>
+          <p>
+            <strong>Material:</strong> {item.material || item.fabric || "Unknown"}
           </p>
         </div>
 
-        {/* Action Button - Only Add to Cart remains */}
-        <div style={{ display: "grid", gap: "10px", marginTop: "20px" }}>
-          <button
-            onClick={handleLike}
-            style={{
-              width: "100%",
-              padding: "15px",
-              borderRadius: "30px",
-              border: "1px solid #2d5a27",
-              background: "white",
-              color: "#2d5a27",
-              fontWeight: "bold",
-              fontSize: "16px",
-              cursor: "pointer",
-            }}
-          >
+        <div style={styles.actions}>
+          <button onClick={handleLike} style={styles.favoriteButton}>
             Add to Favorites
           </button>
-          <button
-            onClick={handleAddToCart}
-            style={{
-              width: "100%",
-              padding: "15px",
-              borderRadius: "30px",
-              border: "none",
-              background: "#00d285",
-              color: "white",
-              fontWeight: "bold",
-              fontSize: "16px",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={handleAddToCart} style={styles.cartButton}>
             Add to Cart
           </button>
-          <button
-            onClick={() => onShowOutfit?.(item)}
-            style={{
-              width: "100%",
-              padding: "15px",
-              borderRadius: "30px",
-              border: "none",
-              background: "#2d5a27",
-              color: "white",
-              fontWeight: "bold",
-              fontSize: "16px",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={() => onShowOutfit?.(item)} style={styles.outfitButton}>
             Complete the Look
           </button>
-          {likeMessage && (
-            <p style={{ color: "#2d5a27", fontSize: "14px", textAlign: "center" }}>
-              {likeMessage}
-            </p>
-          )}
-          {cartMessage && (
-            <p style={{ color: "#2d5a27", fontSize: "14px", textAlign: "center" }}>
-              {cartMessage}
-            </p>
-          )}
+          {likeMessage && <p style={styles.message}>{likeMessage}</p>}
+          {cartMessage && <p style={styles.message}>{cartMessage}</p>}
         </div>
       </div>
 
-      <hr
-        style={{ border: "0", borderTop: "1px solid #eee", margin: "20px 0" }}
-      />
+      <hr style={styles.divider} />
 
-      {/* User Comments Section */}
-      <div style={{ padding: "0 20px" }}>
-        <h3 style={{ marginBottom: "15px" }}>Comments</h3>
+      <div style={styles.comments}>
+        <h3 style={styles.commentTitle}>Comments</h3>
         {comments.length === 0 ? (
-          <p style={{ color: "#999", fontSize: "14px" }}>
-            No comments yet. Be the first to comment.
-          </p>
+          <p style={styles.emptyComment}>No comments yet.</p>
         ) : (
-          comments.map((c, i) => (
-            <p
-              key={i}
-              style={{
-                fontSize: "14px",
-                borderBottom: "1px solid #f0f0f0",
-                paddingBottom: "8px",
-                marginBottom: "8px",
-              }}
-            >
-              <strong>{c.user}:</strong> {c.text}
+          comments.map((comment, index) => (
+            <p key={index} style={styles.comment}>
+              <strong>{comment.user}:</strong> {comment.text}
             </p>
           ))
         )}
 
-        {/* Comment Input */}
-        <div style={{ display: "flex", gap: "8px", marginTop: "15px" }}>
+        <div style={styles.commentForm}>
           <input
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={(event) => setNewComment(event.target.value)}
             placeholder="Add a comment..."
-            style={{
-              flex: 1,
-              padding: "12px",
-              borderRadius: "25px",
-              border: "1px solid #ddd",
-              outline: "none",
-            }}
+            style={styles.commentInput}
           />
-          <button
-            onClick={handleAddComment}
-            style={{
-              padding: "10px 20px",
-              background: "#2d5a27",
-              color: "white",
-              border: "none",
-              borderRadius: "25px",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={handleAddComment} style={styles.sendButton}>
             Send
           </button>
         </div>
       </div>
     </div>
   );
+};
+
+const styles = {
+  page: {
+    paddingBottom: "100px",
+    backgroundColor: "#fff",
+    minHeight: "100vh",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px",
+  },
+  backButton: {
+    background: "white",
+    border: "1px solid #2d5a27",
+    borderRadius: "30px",
+    color: "#2d5a27",
+    cursor: "pointer",
+    fontWeight: "bold",
+    padding: "12px 16px",
+  },
+  headerCartButton: {
+    flex: 1,
+    padding: "15px",
+    borderRadius: "30px",
+    border: "none",
+    background: "#00d285",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+  productImage: {
+    width: "100%",
+    height: "400px",
+    objectFit: "cover",
+  },
+  content: {
+    padding: "20px",
+  },
+  title: {
+    margin: "0",
+    fontSize: "22px",
+  },
+  brand: {
+    color: "#6200ee",
+    fontWeight: "bold",
+    fontSize: "16px",
+    margin: "5px 0",
+  },
+  price: {
+    fontSize: "26px",
+    margin: "10px 0",
+    color: "#333",
+  },
+  metadataGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "15px",
+    margin: "20px 0",
+    fontSize: "15px",
+  },
+  actions: {
+    display: "grid",
+    gap: "10px",
+    marginTop: "20px",
+  },
+  favoriteButton: {
+    width: "100%",
+    padding: "15px",
+    borderRadius: "30px",
+    border: "1px solid #2d5a27",
+    background: "white",
+    color: "#2d5a27",
+    fontWeight: "bold",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  cartButton: {
+    width: "100%",
+    padding: "15px",
+    borderRadius: "30px",
+    border: "none",
+    background: "#00d285",
+    color: "white",
+    fontWeight: "bold",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  outfitButton: {
+    width: "100%",
+    padding: "15px",
+    borderRadius: "30px",
+    border: "none",
+    background: "#2d5a27",
+    color: "white",
+    fontWeight: "bold",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  message: {
+    color: "#2d5a27",
+    fontSize: "14px",
+    textAlign: "center",
+  },
+  divider: {
+    border: "0",
+    borderTop: "1px solid #eee",
+    margin: "20px 0",
+  },
+  comments: {
+    padding: "0 20px",
+  },
+  commentTitle: {
+    marginBottom: "15px",
+  },
+  emptyComment: {
+    color: "#999",
+    fontSize: "14px",
+  },
+  comment: {
+    fontSize: "14px",
+    borderBottom: "1px solid #f0f0f0",
+    paddingBottom: "8px",
+    marginBottom: "8px",
+  },
+  commentForm: {
+    display: "flex",
+    gap: "8px",
+    marginTop: "15px",
+  },
+  commentInput: {
+    flex: 1,
+    padding: "12px",
+    borderRadius: "25px",
+    border: "1px solid #ddd",
+    outline: "none",
+  },
+  sendButton: {
+    padding: "10px 20px",
+    background: "#2d5a27",
+    color: "white",
+    border: "none",
+    borderRadius: "25px",
+    cursor: "pointer",
+  },
 };
 
 export default ProductDetail;

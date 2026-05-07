@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models, auth
 from app.database import get_db
+from app.services.impact_service import (
+    add_listing_impact,
+    estimate_water_saved_liters,
+)
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -19,6 +23,12 @@ def create_product(
     
     if not seller:
         raise HTTPException(status_code=403, detail="User is not a seller")
+
+    water_saved_liters = estimate_water_saved_liters(
+        product_data.material,
+        product_data.weight_kg,
+        product_data.category,
+    )
     
     product = models.Product(
         seller_id=seller.seller_id,
@@ -31,6 +41,8 @@ def create_product(
         size=product_data.size,
         condition=product_data.condition,
         material=product_data.material,
+        weight_kg=product_data.weight_kg,
+        water_saved_liters=water_saved_liters,
         price=product_data.price,
         image_url=product_data.image_url,
         source_platform=product_data.source_platform,
@@ -38,6 +50,9 @@ def create_product(
     )
     
     db.add(product)
+    if product_data.source_platform == "lens":
+        add_listing_impact(db, current_user.user_id, water_saved_liters)
+
     db.commit()
     db.refresh(product)
     
@@ -120,8 +135,16 @@ def update_product(
     if seller.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    for key, value in product_data.dict(exclude_unset=True).items():
+    update_data = product_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
         setattr(product, key, value)
+
+    if "material" in update_data or "weight_kg" in update_data:
+        product.water_saved_liters = estimate_water_saved_liters(
+            product.material,
+            product.weight_kg,
+            product.category,
+        )
     
     db.commit()
     db.refresh(product)
