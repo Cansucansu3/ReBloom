@@ -47,11 +47,15 @@ function App() {
   }, [view]);
 
   const showProfile = () => {
+    setSelectedProduct(null);
+    setOutfitProduct(null);
     setMyItems([]);
     setView("profile");
   };
 
   const showMyItems = () => {
+    setSelectedProduct(null);
+    setOutfitProduct(null);
     if (!getToken()) {
       setMyItems([]);
       setView("profile");
@@ -59,6 +63,12 @@ function App() {
     }
 
     setView("myItems");
+  };
+
+  const showLens = () => {
+    setSelectedProduct(null);
+    setOutfitProduct(null);
+    setView("lens");
   };
 
   const handleFinalizeListing = (newItem, savings) => {
@@ -275,23 +285,23 @@ function App() {
               </div>
             )}
           </main>
-
-          <nav style={styles.navBar}>
-            <button onClick={showHome} style={styles.navItem}>
-              Home
-            </button>
-            <button onClick={() => setView("lens")} style={styles.navItem}>
-              Lens
-            </button>
-            <button onClick={showMyItems} style={styles.navItem}>
-              My Items
-            </button>
-            <button onClick={showProfile} style={styles.navItem}>
-              Profile
-            </button>
-          </nav>
         </>
       )}
+
+      <nav style={styles.navBar}>
+        <button onClick={showHome} style={styles.navItem}>
+          Home
+        </button>
+        <button onClick={showLens} style={styles.navItem}>
+          Lens
+        </button>
+        <button onClick={showMyItems} style={styles.navItem}>
+          My Items
+        </button>
+        <button onClick={showProfile} style={styles.navItem}>
+          Profile
+        </button>
+      </nav>
     </div>
   );
 }

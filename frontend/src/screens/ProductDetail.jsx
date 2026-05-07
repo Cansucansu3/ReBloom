@@ -6,6 +6,12 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
   const [comments, setComments] = useState([]);
   const [cartMessage, setCartMessage] = useState("");
   const [likeMessage, setLikeMessage] = useState("");
+  const rawWaterSaved = item.water_saved_liters ?? item.waterSaved;
+  const waterSaved = Number.isFinite(Number(rawWaterSaved))
+    ? Math.round(Number(rawWaterSaved))
+    : null;
+  const materialLabel = item.material || item.fabric || "Unknown";
+  const weightLabel = item.weight_kg ?? item.weight;
 
   useEffect(() => {
     const productId = item.product_id || item.id;
@@ -45,9 +51,6 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <button onClick={onBack} style={styles.backButton}>
-          Back
-        </button>
         <button onClick={handleAddToCart} style={styles.headerCartButton}>
           Add to Cart
         </button>
@@ -74,8 +77,16 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
           <p>
             <strong>Gender:</strong> {item.gender || item.subcategory || "Unisex"}
           </p>
-          <p>
-            <strong>Material:</strong> {item.material || item.fabric || "Unknown"}
+        </div>
+
+        <div style={styles.impactBox}>
+          <p style={styles.impactLabel}>Water impact</p>
+          <h3 style={styles.impactValue}>
+            {waterSaved !== null ? `${waterSaved.toLocaleString()} L saved` : "Not calculated"}
+          </h3>
+          <p style={styles.impactDetail}>
+            {materialLabel}
+            {weightLabel ? ` | ${Number(weightLabel).toFixed(1)} kg` : ""}
           </p>
         </div>
 
@@ -133,20 +144,10 @@ const styles = {
   header: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
     padding: "10px",
   },
-  backButton: {
-    background: "white",
-    border: "1px solid #2d5a27",
-    borderRadius: "30px",
-    color: "#2d5a27",
-    cursor: "pointer",
-    fontWeight: "bold",
-    padding: "12px 16px",
-  },
   headerCartButton: {
-    flex: 1,
+    width: "100%",
     padding: "15px",
     borderRadius: "30px",
     border: "none",
@@ -184,6 +185,30 @@ const styles = {
     gap: "15px",
     margin: "20px 0",
     fontSize: "15px",
+  },
+  impactBox: {
+    background: "#e8f5e9",
+    border: "1px solid #c8e6c9",
+    borderRadius: "12px",
+    padding: "14px",
+    margin: "20px 0",
+  },
+  impactLabel: {
+    color: "#2d5a27",
+    fontSize: "12px",
+    fontWeight: "bold",
+    margin: "0 0 6px",
+    textTransform: "uppercase",
+  },
+  impactValue: {
+    color: "#1f3f1c",
+    fontSize: "24px",
+    margin: 0,
+  },
+  impactDetail: {
+    color: "#555",
+    fontSize: "13px",
+    margin: "6px 0 0",
   },
   actions: {
     display: "grid",

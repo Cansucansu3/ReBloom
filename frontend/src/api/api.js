@@ -101,6 +101,16 @@ export async function visualSearchProducts(file) {
   });
 }
 
+export async function analyzeItemImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return request("/search/analyze-item", {
+    method: "POST",
+    body: formData,
+  });
+}
+
 export async function getHomeRecommendations() {
   return request("/recommendations/home");
 }
