@@ -56,11 +56,13 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
         </button>
       </div>
 
-      <img
-        src={item.preview || item.image}
-        style={styles.productImage}
-        alt={item.title || "Product"}
-      />
+      <div style={styles.productImageFrame}>
+        <img
+          src={item.preview || item.image}
+          style={styles.productImage}
+          alt={item.title || "Product"}
+        />
+      </div>
 
       <div style={styles.content}>
         <h2 style={styles.title}>{item.title}</h2>
@@ -156,10 +158,19 @@ const styles = {
     fontWeight: "bold",
     cursor: "pointer",
   },
-  productImage: {
+  productImageFrame: {
     width: "100%",
     height: "400px",
-    objectFit: "cover",
+    background: "#f8faf8",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
   },
   content: {
     padding: "20px",

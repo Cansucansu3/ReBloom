@@ -150,8 +150,9 @@ const styles = {
   baseImage: {
     width: "86px",
     height: "86px",
-    objectFit: "cover",
+    objectFit: "contain",
     borderRadius: "10px",
+    background: "white",
   },
   eyebrow: {
     margin: "0 0 4px",

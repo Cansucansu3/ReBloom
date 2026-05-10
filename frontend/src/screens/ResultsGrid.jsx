@@ -30,6 +30,7 @@ const ResultsGrid = ({
   errorOverride,
   heading,
   emptyMessage,
+  queryImagePreview,
 }) => {
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -59,30 +60,59 @@ const ResultsGrid = ({
   const visibleProducts = sourceProducts.filter((product) =>
     productMatchesSearch(product, searchQuery)
   );
+  const resultsHeader = (
+    <>
+      {queryImagePreview && (
+        <div style={styles.queryPreview}>
+          <img
+            src={queryImagePreview}
+            alt="Searched item"
+            style={styles.queryPreviewImage}
+          />
+          <div>
+            <p style={styles.queryPreviewLabel}>Searched image</p>
+            <p style={styles.queryPreviewText}>Showing visually similar items</p>
+          </div>
+        </div>
+      )}
+      {heading && <h2 style={styles.heading}>{heading}</h2>}
+    </>
+  );
 
   if (displayStatus === "loading") {
-    return <p style={{ textAlign: "center", padding: "20px" }}>Loading products...</p>;
+    return (
+      <>
+        {resultsHeader}
+        <p style={{ textAlign: "center", padding: "20px" }}>Loading products...</p>
+      </>
+    );
   }
 
   if (displayStatus === "error") {
     return (
-      <p style={{ color: "#b00020", textAlign: "center", padding: "20px" }}>
-        Backend connection failed: {displayError}
-      </p>
+      <>
+        {resultsHeader}
+        <p style={{ color: "#b00020", textAlign: "center", padding: "20px" }}>
+          Backend connection failed: {displayError}
+        </p>
+      </>
     );
   }
 
   if (visibleProducts.length === 0) {
     return (
-      <p style={{ textAlign: "center", padding: "20px" }}>
-        {emptyMessage || (searchQuery ? `No products found for "${searchQuery}".` : "No products yet.")}
-      </p>
+      <>
+        {resultsHeader}
+        <p style={{ textAlign: "center", padding: "20px" }}>
+          {emptyMessage || (searchQuery ? `No products found for "${searchQuery}".` : "No products yet.")}
+        </p>
+      </>
     );
   }
 
   return (
     <>
-      {heading && <h2 style={{ margin: "20px", color: "#1f3f1c" }}>{heading}</h2>}
+      {resultsHeader}
     <div
       style={{
         display: "flex",
@@ -129,6 +159,43 @@ const ResultsGrid = ({
     </div>
     </>
   );
+};
+
+const styles = {
+  heading: {
+    margin: "16px 20px 8px",
+    color: "#1f3f1c",
+    textAlign: "center",
+  },
+  queryPreview: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    maxWidth: "520px",
+    margin: "18px auto 8px",
+    padding: "12px",
+    border: "1px solid #d8e8d4",
+    borderRadius: "12px",
+    background: "#f6fbf5",
+    boxSizing: "border-box",
+  },
+  queryPreviewImage: {
+    width: "78px",
+    height: "78px",
+    objectFit: "cover",
+    borderRadius: "10px",
+    background: "white",
+  },
+  queryPreviewLabel: {
+    margin: "0 0 4px",
+    color: "#1f3f1c",
+    fontWeight: "bold",
+  },
+  queryPreviewText: {
+    margin: 0,
+    color: "#666",
+    fontSize: "13px",
+  },
 };
 
 export default ResultsGrid;

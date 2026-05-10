@@ -20,16 +20,28 @@ const ProductCard = ({ item, onClick }) => {
         cursor: "pointer",
       }}
     >
-      <img
-        src={item.image}
-        alt={item.title}
+      <div
         style={{
           width: "100%",
-          height: "120px",
-          objectFit: "cover",
+          height: "140px",
           borderRadius: "8px",
+          background: "#f8faf8",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
         }}
-      />
+      >
+        <img
+          src={item.image}
+          alt={item.title}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+          }}
+        />
+      </div>
       <h4 style={{ margin: "8px 0" }}>{item.title}</h4>
       <p style={{ color: "#2d5a27", fontWeight: "bold" }}>{item.price} TL</p>
       <div

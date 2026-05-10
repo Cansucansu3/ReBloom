@@ -28,6 +28,7 @@ function App() {
   const [visualProducts, setVisualProducts] = useState(null);
   const [visualStatus, setVisualStatus] = useState("idle");
   const [visualError, setVisualError] = useState("");
+  const [visualQueryImage, setVisualQueryImage] = useState("");
   const visualInputRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +46,11 @@ function App() {
         }
       });
   }, [view]);
+
+  useEffect(() => {
+    if (!visualQueryImage.startsWith("blob:")) return undefined;
+    return () => URL.revokeObjectURL(visualQueryImage);
+  }, [visualQueryImage]);
 
   const showProfile = () => {
     setSelectedProduct(null);
@@ -86,6 +92,7 @@ function App() {
     setActiveSearch(trimmedSearch);
     setVisualProducts(null);
     setVisualStatus("idle");
+    setVisualQueryImage("");
     setSelectedProduct(null);
     setView("results");
 
@@ -99,6 +106,7 @@ function App() {
     setSearchTerm("");
     setVisualProducts(null);
     setVisualStatus("idle");
+    setVisualQueryImage("");
     setSelectedProduct(null);
     setOutfitProduct(null);
     setView("results");
@@ -116,6 +124,7 @@ function App() {
     setVisualProducts([]);
     setVisualError("");
     setVisualStatus("loading");
+    setVisualQueryImage(URL.createObjectURL(file));
     setView("results");
 
     try {
@@ -215,6 +224,7 @@ function App() {
                   errorOverride={visualError}
                   heading="Visual search results"
                   emptyMessage="No visually similar products found yet."
+                  queryImagePreview={visualQueryImage}
                 />
               ) : activeSearch ? (
                 <ResultsGrid
@@ -384,8 +394,9 @@ const styles = {
   miniImg: {
     width: "100%",
     height: "100px",
-    objectFit: "cover",
+    objectFit: "contain",
     borderRadius: "10px",
+    background: "#f8faf8",
   },
   statusBadge: {
     fontSize: "10px",
