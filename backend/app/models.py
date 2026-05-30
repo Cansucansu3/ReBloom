@@ -91,6 +91,12 @@ class Product(Base):
     cart_entries = relationship("Cart", back_populates="product")
     order_entries = relationship("Orders", back_populates="product")
 
+    @property
+    def seller_name(self):
+        if self.seller and self.seller.user:
+            return self.seller.user.name
+        return None
+
 
 # AI SYSTEM (4-6)
 

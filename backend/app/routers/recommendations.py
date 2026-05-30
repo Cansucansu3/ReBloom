@@ -76,6 +76,7 @@ def product_to_dict(product):
     return {
         "product_id": product.product_id,
         "seller_id": product.seller_id,
+        "seller_name": product.seller_name,
         "title": product.title,
         "description": product.description,
         "category": product.category,

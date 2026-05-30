@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import auth, models
 from app.database import get_db
+from app.services.impact_service import get_tree_stage_payload
 
 
 router = APIRouter(prefix="/impact", tags=["Impact"])
@@ -45,34 +46,9 @@ def get_tree_status(
 
     water_saved = impact.total_water_saved_liters if impact else 0
 
-    if water_saved < 100:
-        stage = "seed"
-        next_threshold = 100
-        label = "Seed"
-    elif water_saved < 5000:
-        stage = "sapling"
-        next_threshold = 5000
-        label = "Sapling"
-    elif water_saved < 20000:
-        stage = "young_tree"
-        next_threshold = 20000
-        label = "Tree"
-    elif water_saved < 100000:
-        stage = "mature_oak"
-        next_threshold = 100000
-        label = "Oak"
-    else:
-        stage = "ancient_oak"
-        next_threshold = None
-        label = "Ancient Oak"
-
-    return {
-        "stage": stage,
-        "emoji": label,
-        "water_saved": water_saved,
-        "next_stage_threshold": next_threshold,
-        "remaining_to_next": next_threshold - water_saved if next_threshold else 0,
-    }
+    payload = get_tree_stage_payload(water_saved)
+    payload["emoji"] = payload["label"]
+    return payload
 
 
 @router.get("/milestones")

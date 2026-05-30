@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { addToCart, likeProduct, recordProductView } from "../api/api";
 
-const ProductDetail = ({ item, onBack, onShowOutfit }) => {
+const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
   const [cartMessage, setCartMessage] = useState("");
@@ -12,6 +12,7 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
     : null;
   const materialLabel = item.material || item.fabric || "Unknown";
   const weightLabel = item.weight_kg ?? item.weight;
+  const isSold = item.is_active === false || item.status === "Sold";
 
   useEffect(() => {
     const productId = item.product_id || item.id;
@@ -50,22 +51,23 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
 
   return (
     <div style={styles.page}>
-      <div style={styles.header}>
-        <button onClick={handleAddToCart} style={styles.headerCartButton}>
-          Add to Cart
-        </button>
-      </div>
+      <button type="button" onClick={onBack} style={styles.backButton}>
+        Back
+      </button>
 
-      <img
-        src={item.preview || item.image}
-        style={styles.productImage}
-        alt={item.title || "Product"}
-      />
+      <div style={styles.productImageFrame}>
+        <img
+          src={item.preview || item.image}
+          style={styles.productImage}
+          alt={item.title || "Product"}
+        />
+      </div>
 
       <div style={styles.content}>
         <h2 style={styles.title}>{item.title}</h2>
         <p style={styles.brand}>{item.brand}</p>
         <h3 style={styles.price}>{item.price} TL</h3>
+        {isSold && <p style={styles.soldBadge}>Sold</p>}
 
         <div style={styles.metadataGrid}>
           <p>
@@ -78,6 +80,16 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
             <strong>Gender:</strong> {item.gender || item.subcategory || "Unisex"}
           </p>
         </div>
+
+        {item.seller_id && (
+          <button
+            type="button"
+            onClick={() => onSellerSelect?.(item.seller_id)}
+            style={styles.sellerButton}
+          >
+            View seller: {item.seller_name || item.sellerName || "ReBloom seller"}
+          </button>
+        )}
 
         <div style={styles.impactBox}>
           <p style={styles.impactLabel}>Water impact</p>
@@ -94,9 +106,11 @@ const ProductDetail = ({ item, onBack, onShowOutfit }) => {
           <button onClick={handleLike} style={styles.favoriteButton}>
             Add to Favorites
           </button>
-          <button onClick={handleAddToCart} style={styles.cartButton}>
-            Add to Cart
-          </button>
+          {!isSold && (
+            <button onClick={handleAddToCart} style={styles.cartButton}>
+              Add to Cart
+            </button>
+          )}
           <button onClick={() => onShowOutfit?.(item)} style={styles.outfitButton}>
             Complete the Look
           </button>
@@ -141,25 +155,29 @@ const styles = {
     backgroundColor: "#fff",
     minHeight: "100vh",
   },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    padding: "10px",
-  },
-  headerCartButton: {
-    width: "100%",
-    padding: "15px",
-    borderRadius: "30px",
-    border: "none",
-    background: "#00d285",
-    color: "white",
+  backButton: {
+    margin: "14px 0 10px 16px",
+    border: "1px solid #2d5a27",
+    background: "white",
+    color: "#2d5a27",
+    borderRadius: "20px",
+    padding: "8px 14px",
     fontWeight: "bold",
     cursor: "pointer",
   },
-  productImage: {
+  productImageFrame: {
     width: "100%",
     height: "400px",
-    objectFit: "cover",
+    background: "#f8faf8",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
   },
   content: {
     padding: "20px",
@@ -179,6 +197,17 @@ const styles = {
     margin: "10px 0",
     color: "#333",
   },
+  soldBadge: {
+    display: "inline-block",
+    background: "#f7eeee",
+    color: "#8a2f2f",
+    border: "1px solid #8a2f2f",
+    borderRadius: "999px",
+    padding: "5px 12px",
+    margin: "0 0 10px",
+    fontWeight: "bold",
+    fontSize: "13px",
+  },
   metadataGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -192,6 +221,17 @@ const styles = {
     borderRadius: "12px",
     padding: "14px",
     margin: "20px 0",
+  },
+  sellerButton: {
+    width: "100%",
+    border: "1px solid #dceadc",
+    background: "#f8faf8",
+    color: "#2d5a27",
+    borderRadius: "14px",
+    padding: "12px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    marginBottom: "14px",
   },
   impactLabel: {
     color: "#2d5a27",

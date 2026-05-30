@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 
@@ -8,6 +9,9 @@ from services.compatibility_service import (
     load_image_from_value,
 )
 
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+LENS_CATEGORY_MODEL_PATH = BASE_DIR / "models" / "lens_category_model.joblib"
 
 CATEGORY_PROMPTS = {
     "tops": ["a clothing product photo of a shirt", "a t-shirt", "a blouse", "a top"],
@@ -80,6 +84,15 @@ def softmax(scores, temperature=30):
     return exp_values / np.sum(exp_values)
 
 
+@lru_cache(maxsize=1)
+def load_lens_category_artifact(model_path=str(LENS_CATEGORY_MODEL_PATH)):
+    import joblib
+
+    artifact = joblib.load(model_path)
+    model = artifact["model"] if isinstance(artifact, dict) else artifact
+    return artifact, model
+
+
 @lru_cache(maxsize=32)
 def get_prompt_embeddings(cache_key):
     import clip
@@ -127,6 +140,46 @@ def classify_embedding(image_embedding, cache_key):
         reverse=True,
     )
     return ranked[0], ranked
+
+
+def classify_with_trained_category_model(image_embedding):
+    if not LENS_CATEGORY_MODEL_PATH.exists():
+        return None
+
+    try:
+        artifact, model = load_lens_category_artifact()
+        features = np.asarray(image_embedding, dtype=np.float32).reshape(1, -1)
+
+        if hasattr(model, "predict_proba"):
+            probabilities = model.predict_proba(features)[0]
+            labels = list(getattr(model, "classes_", artifact.get("labels", [])))
+        elif hasattr(model, "decision_function"):
+            scores = np.asarray(model.decision_function(features)).reshape(-1)
+            probabilities = softmax(scores, temperature=1)
+            labels = list(getattr(model, "classes_", artifact.get("labels", [])))
+        else:
+            label = str(model.predict(features)[0])
+            labels = [label]
+            probabilities = np.array([1.0])
+
+        if not labels:
+            return None
+
+        ranked = sorted(
+            (
+                {
+                    "label": str(labels[index]),
+                    "score": float(probabilities[index]),
+                    "confidence": float(probabilities[index]),
+                }
+                for index in range(len(labels))
+            ),
+            key=lambda item: item["confidence"],
+            reverse=True,
+        )
+        return ranked[0], ranked
+    except Exception:
+        return None
 
 
 def dominant_color_name(image):
@@ -189,7 +242,26 @@ def analyze_item_image(query_image_value):
         return {"is_fashion": False, "error": "Image could not be analyzed"}
 
     fashion_best, fashion_scores = classify_embedding(image_embedding, "fashion")
-    category_best, category_scores = classify_embedding(image_embedding, "category")
+    prompt_category_best, prompt_category_scores = classify_embedding(
+        image_embedding,
+        "category",
+    )
+    trained_category = classify_with_trained_category_model(image_embedding)
+    if trained_category:
+        category_best, category_scores = trained_category
+        trained_labels = {item["label"] for item in category_scores}
+        prompt_label_missing = prompt_category_best["label"] not in trained_labels
+        if prompt_label_missing and prompt_category_best["confidence"] >= 0.45:
+            category_best = prompt_category_best
+            category_scores = prompt_category_scores
+            category_source = "clip_prompt_fallback_for_untrained_category"
+        else:
+            category_source = "trained_lens_category_model"
+    else:
+        category_best = prompt_category_best
+        category_scores = prompt_category_scores
+        category_source = "clip_prompt_fallback"
+
     pattern_best, pattern_scores = classify_embedding(image_embedding, "pattern")
 
     category = category_best["label"]
@@ -209,6 +281,7 @@ def analyze_item_image(query_image_value):
         "fashion_confidence": round(float(fashion_score), 3),
         "category": category,
         "category_confidence": round(float(category_best["confidence"]), 3),
+        "category_source": category_source,
         "category_scores": {
             item["label"]: round(float(item["confidence"]), 3)
             for item in category_scores[:4]

@@ -55,15 +55,31 @@ def view_cart(
             models.Product.product_id == item.product_id
         ).first()
         
+        if not product or not product.is_active:
+            db.delete(item)
+            continue
+
+        seller_name = None
+        if product.seller and product.seller.user:
+            seller_name = product.seller.user.name
+
         if product:
             items.append({
                 "cart_id": item.cart_id,
                 "product_id": product.product_id,
+                "seller_id": product.seller_id,
+                "seller_name": seller_name,
                 "title": product.title,
+                "brand": product.brand,
+                "size": product.size,
+                "image_url": product.image_url,
+                "water_saved_liters": product.water_saved_liters,
                 "price": product.price,
                 "added_at": item.added_at
             })
             total += product.price
+
+    db.commit()
     
     return {"items": items, "total": total}
 

@@ -8,3 +8,4 @@ from app.routers import impact
 from app.routers import search
 from app.routers import outfit
 from app.routers import gamification
+from app.routers import profiles

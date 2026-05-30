@@ -4,10 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models, auth
 from app.database import get_db
-from app.services.impact_service import (
-    add_listing_impact,
-    estimate_water_saved_liters,
-)
+from app.services.impact_service import estimate_water_saved_liters
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -50,8 +47,6 @@ def create_product(
     )
     
     db.add(product)
-    if product_data.source_platform == "lens":
-        add_listing_impact(db, current_user.user_id, water_saved_liters)
 
     db.commit()
     db.refresh(product)
@@ -102,8 +97,7 @@ def get_my_products(
 
     return db.query(models.Product).filter(
         models.Product.seller_id == seller.seller_id,
-        models.Product.source_platform == "lens",
-        models.Product.is_active == True
+        models.Product.source_platform == "lens"
     ).order_by(models.Product.created_at.desc()).all()
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)

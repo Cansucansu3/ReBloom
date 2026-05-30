@@ -6,6 +6,8 @@ import ProductCard from "../components/ProductCard";
 const toDetailItem = (product) => ({
   id: product.product_id,
   product_id: product.product_id,
+  seller_id: product.seller_id,
+  seller_name: product.seller_name,
   title: product.title,
   description: product.description,
   price: product.price,
@@ -150,8 +152,9 @@ const styles = {
   baseImage: {
     width: "86px",
     height: "86px",
-    objectFit: "cover",
+    objectFit: "contain",
     borderRadius: "10px",
+    background: "white",
   },
   eyebrow: {
     margin: "0 0 4px",

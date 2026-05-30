@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_URL = API_BASE_URL;
 
 export function getToken() {
   return localStorage.getItem("token");
@@ -73,6 +74,27 @@ export async function addToCart(productId) {
   });
 }
 
+export async function getCart() {
+  return request("/cart/");
+}
+
+export async function removeFromCart(cartId) {
+  return request(`/cart/remove/${cartId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function checkoutCart(sellerId) {
+  const suffix = sellerId ? `?seller_id=${sellerId}` : "";
+  return request(`/checkout/${suffix}`, {
+    method: "POST",
+  });
+}
+
+export async function getMyOrders() {
+  return request("/checkout/orders");
+}
+
 export async function recordProductView(productId) {
   return request(`/interactions/view/${productId}`, {
     method: "POST",
@@ -129,6 +151,18 @@ export async function getOutfitRecommendations(productId) {
 
 export async function getMyImpact() {
   return request("/impact/me");
+}
+
+export async function getLeaderboard(limit = 10) {
+  return request(`/leaderboard/?limit=${limit}`);
+}
+
+export async function getPublicSellerProfile(sellerId) {
+  return request(`/profiles/seller/${sellerId}`);
+}
+
+export async function getPublicUserProfile(userId) {
+  return request(`/profiles/user/${userId}`);
 }
 
 export async function login(email, password) {
