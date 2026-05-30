@@ -28,6 +28,38 @@ DEFAULT_CATEGORY_WEIGHTS_KG = {
     "clothing": 0.50,
 }
 
+VIRTUAL_TREE_GOAL_LITERS = 10000
+REAL_TREE_GOAL_LITERS = 50000
+LEGACY_GOAL_LITERS = 100000
+
+
+TREE_STAGE_THRESHOLDS = [
+    {
+        "stage": "seed",
+        "label": "Seed",
+        "next": 1000,
+        "description": "Your garden has started.",
+    },
+    {
+        "stage": "sapling",
+        "label": "Sapling",
+        "next": 4000,
+        "description": "Your first leaves are growing.",
+    },
+    {
+        "stage": "young_tree",
+        "label": "Young Tree",
+        "next": 7000,
+        "description": "Your impact is becoming visible.",
+    },
+    {
+        "stage": "mature_oak",
+        "label": "Mature Oak",
+        "next": VIRTUAL_TREE_GOAL_LITERS,
+        "description": "Your garden is getting stronger.",
+    },
+]
+
 
 def normalize_material_name(value):
     text = str(value or "").strip().lower()
@@ -99,6 +131,60 @@ def ensure_user_impact(db, user_id):
     return impact
 
 
+def get_current_tree_liters(total_water_saved_liters):
+    total = max(0, float(total_water_saved_liters or 0))
+    return total % VIRTUAL_TREE_GOAL_LITERS
+
+
+def get_impact_milestones(total_water_saved_liters):
+    total = max(0, float(total_water_saved_liters or 0))
+    return {
+        "virtual_trees": int(total // VIRTUAL_TREE_GOAL_LITERS),
+        "real_trees_earned": int(total // REAL_TREE_GOAL_LITERS),
+        "legacy_milestone_reached": total >= LEGACY_GOAL_LITERS,
+    }
+
+
+def apply_impact_milestones(impact):
+    milestones = get_impact_milestones(impact.total_water_saved_liters)
+    impact.virtual_trees = milestones["virtual_trees"]
+    impact.real_trees_earned = milestones["real_trees_earned"]
+    return impact
+
+
+def get_tree_stage_payload(total_water_saved_liters):
+    total = max(0, float(total_water_saved_liters or 0))
+    current_tree_liters = get_current_tree_liters(total)
+    milestones = get_impact_milestones(total)
+
+    for stage in TREE_STAGE_THRESHOLDS:
+        if current_tree_liters < stage["next"]:
+            selected = stage
+            break
+    else:
+        selected = TREE_STAGE_THRESHOLDS[-1]
+
+    return {
+        "stage": selected["stage"],
+        "label": selected["label"],
+        "description": selected["description"],
+        "water_saved": total,
+        "total_water_saved_liters": total,
+        "current_tree_liters": current_tree_liters,
+        "current_tree_goal_liters": VIRTUAL_TREE_GOAL_LITERS,
+        "real_tree_goal_liters": REAL_TREE_GOAL_LITERS,
+        "legacy_goal_liters": LEGACY_GOAL_LITERS,
+        "next_stage_threshold": selected["next"],
+        "remaining_to_next": max(0, selected["next"] - current_tree_liters),
+        "remaining_to_next_tree": (
+            VIRTUAL_TREE_GOAL_LITERS
+            if current_tree_liters == 0
+            else max(0, VIRTUAL_TREE_GOAL_LITERS - current_tree_liters)
+        ),
+        **milestones,
+    }
+
+
 def add_listing_impact(db, user_id, water_saved_liters):
     impact = ensure_user_impact(db, user_id)
     water_saved = float(water_saved_liters or 0)
@@ -106,7 +192,7 @@ def add_listing_impact(db, user_id, water_saved_liters):
     impact.total_water_saved_liters = (impact.total_water_saved_liters or 0) + water_saved
     impact.total_items_reused = (impact.total_items_reused or 0) + 1
     impact.impact_points = (impact.impact_points or 0) + int(water_saved // 100)
-    impact.virtual_trees = int((impact.total_water_saved_liters or 0) // 1000)
+    apply_impact_milestones(impact)
     impact.updated_at = datetime.now()
     return impact
 

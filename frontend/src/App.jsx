@@ -5,6 +5,9 @@ import ProfileScreen from "./screens/ProfileScreen";
 import ProductDetail from "./screens/ProductDetail";
 import HomeScreen from "./screens/HomeScreen";
 import OutfitScreen from "./screens/OutfitScreen";
+import CartScreen from "./screens/CartScreen";
+import GardenScreen from "./screens/GardenScreen";
+import SellerProfileScreen from "./screens/SellerProfileScreen";
 import {
   clearToken,
   getMyProducts,
@@ -25,6 +28,9 @@ function App() {
   const [activeSearch, setActiveSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [outfitProduct, setOutfitProduct] = useState(null);
+  const [selectedSellerProfile, setSelectedSellerProfile] = useState(null);
+  const [selectedSellerId, setSelectedSellerId] = useState(null);
+  const [productReturnTarget, setProductReturnTarget] = useState(null);
   const [visualProducts, setVisualProducts] = useState(null);
   const [visualStatus, setVisualStatus] = useState("idle");
   const [visualError, setVisualError] = useState("");
@@ -54,14 +60,20 @@ function App() {
 
   const showProfile = () => {
     setSelectedProduct(null);
+    setProductReturnTarget(null);
     setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setMyItems([]);
     setView("profile");
   };
 
   const showMyItems = () => {
     setSelectedProduct(null);
+    setProductReturnTarget(null);
     setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     if (!getToken()) {
       setMyItems([]);
       setView("profile");
@@ -73,8 +85,39 @@ function App() {
 
   const showLens = () => {
     setSelectedProduct(null);
+    setProductReturnTarget(null);
     setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setView("lens");
+  };
+
+  const showCart = () => {
+    setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
+    if (!getToken()) {
+      setView("profile");
+      return;
+    }
+
+    setView("cart");
+  };
+
+  const showGarden = () => {
+    setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
+    if (!getToken()) {
+      setView("profile");
+      return;
+    }
+
+    setView("garden");
   };
 
   const handleFinalizeListing = (newItem, savings) => {
@@ -94,6 +137,9 @@ function App() {
     setVisualStatus("idle");
     setVisualQueryImage("");
     setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setView("results");
 
     if (trimmedSearch) {
@@ -108,7 +154,10 @@ function App() {
     setVisualStatus("idle");
     setVisualQueryImage("");
     setSelectedProduct(null);
+    setProductReturnTarget(null);
     setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setView("results");
   };
 
@@ -120,7 +169,10 @@ function App() {
     setActiveSearch("");
     setSearchTerm("");
     setSelectedProduct(null);
+    setProductReturnTarget(null);
     setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setVisualProducts([]);
     setVisualError("");
     setVisualStatus("loading");
@@ -140,7 +192,57 @@ function App() {
 
   const showOutfit = (product) => {
     setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
     setOutfitProduct(product);
+  };
+
+  const showSellerProfile = (sellerId) => {
+    setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setOutfitProduct(null);
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(sellerId);
+  };
+
+  const showPublicProfile = (profile) => {
+    setSelectedProduct(null);
+    setProductReturnTarget(null);
+    setOutfitProduct(null);
+    setSelectedSellerId(profile?.seller_id || null);
+    setSelectedSellerProfile(profile);
+  };
+
+  const closeSellerProfile = () => {
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
+  };
+
+  const openProductDetail = (product) => {
+    setProductReturnTarget(null);
+    setSelectedProduct(product);
+  };
+
+  const openProductFromSellerProfile = (product) => {
+    setProductReturnTarget({
+      profile: selectedSellerProfile,
+      sellerId: selectedSellerId || selectedSellerProfile?.seller_id || product?.seller_id || null,
+    });
+    setSelectedSellerProfile(null);
+    setSelectedSellerId(null);
+    setSelectedProduct(product);
+  };
+
+  const closeProductDetail = () => {
+    const target = productReturnTarget;
+    setSelectedProduct(null);
+    setProductReturnTarget(null);
+
+    if (target?.profile || target?.sellerId) {
+      setSelectedSellerProfile(target.profile || null);
+      setSelectedSellerId(target.sellerId || target.profile?.seller_id || null);
+    }
   };
 
   return (
@@ -148,20 +250,28 @@ function App() {
       className="App"
       style={{ paddingBottom: "80px", fontFamily: "sans-serif" }}
     >
-      {outfitProduct ? (
+      {selectedSellerProfile || selectedSellerId ? (
+        <SellerProfileScreen
+          profile={selectedSellerProfile}
+          sellerId={selectedSellerId}
+          onBack={closeSellerProfile}
+          onProductSelect={openProductFromSellerProfile}
+        />
+      ) : outfitProduct ? (
         <OutfitScreen
           item={outfitProduct}
           onBack={() => setOutfitProduct(null)}
           onProductSelect={(product) => {
             setOutfitProduct(null);
-            setSelectedProduct(product);
+            openProductDetail(product);
           }}
         />
       ) : selectedProduct ? (
         <ProductDetail
           item={selectedProduct}
-          onBack={() => setSelectedProduct(null)}
+          onBack={closeProductDetail}
           onShowOutfit={showOutfit}
+          onSellerSelect={showSellerProfile}
         />
       ) : (
         <>
@@ -218,7 +328,7 @@ function App() {
             {view === "results" && (
               visualStatus !== "idle" ? (
                 <ResultsGrid
-                  onProductSelect={setSelectedProduct}
+                  onProductSelect={openProductDetail}
                   providedProducts={visualProducts || []}
                   statusOverride={visualStatus}
                   errorOverride={visualError}
@@ -228,11 +338,11 @@ function App() {
                 />
               ) : activeSearch ? (
                 <ResultsGrid
-                  onProductSelect={setSelectedProduct}
+                  onProductSelect={openProductDetail}
                   searchQuery={activeSearch}
                 />
               ) : (
-                <HomeScreen onProductSelect={setSelectedProduct} />
+                <HomeScreen onProductSelect={openProductDetail} />
               )
             )}
 
@@ -247,6 +357,20 @@ function App() {
               <ProfileScreen
                 totalWaterSaved={totalWaterSaved}
                 onAuthChange={() => setMyItems([])}
+              />
+            )}
+
+            {view === "garden" && (
+              <GardenScreen
+                onAuthRequired={() => setView("profile")}
+                onSellerProfileSelect={showPublicProfile}
+              />
+            )}
+
+            {view === "cart" && (
+              <CartScreen
+                onAuthRequired={() => setView("profile")}
+                onProductSelect={openProductDetail}
               />
             )}
 
@@ -268,7 +392,7 @@ function App() {
                       <div
                         key={i}
                         style={styles.miniCard}
-                        onClick={() => setSelectedProduct(item)}
+                        onClick={() => openProductDetail(item)}
                       >
                         <img
                           src={item.preview}
@@ -287,7 +411,15 @@ function App() {
                         <p style={{ fontSize: "12px", color: "#666" }}>
                           {item.brand} | {item.size}
                         </p>
-                        <span style={styles.statusBadge}>Listing Active</span>
+                        <span
+                          style={
+                            item.status === "Sold"
+                              ? styles.soldStatusBadge
+                              : styles.statusBadge
+                          }
+                        >
+                          {item.status === "Sold" ? "Sold" : "Listing Active"}
+                        </span>
                       </div>
                     ))
                   )}
@@ -307,6 +439,12 @@ function App() {
         </button>
         <button onClick={showMyItems} style={styles.navItem}>
           My Items
+        </button>
+        <button onClick={showCart} style={styles.navItem}>
+          Cart
+        </button>
+        <button onClick={showGarden} style={styles.navItem}>
+          Garden
         </button>
         <button onClick={showProfile} style={styles.navItem}>
           Profile
@@ -366,13 +504,17 @@ const styles = {
   },
   navBar: {
     position: "fixed",
+    left: "50%",
+    transform: "translateX(-50%)",
     bottom: 0,
-    width: "100%",
+    width: "min(1126px, 100vw)",
     background: "#fff",
     borderTop: "1px solid #eee",
     display: "flex",
     justifyContent: "space-around",
     padding: "10px 0",
+    boxSizing: "border-box",
+    zIndex: 1000,
   },
   navItem: {
     background: "none",
@@ -406,6 +548,14 @@ const styles = {
     borderRadius: "10px",
     border: "1px solid #2d5a27",
   },
+  soldStatusBadge: {
+    fontSize: "10px",
+    backgroundColor: "#f7eeee",
+    color: "#8a2f2f",
+    padding: "3px 8px",
+    borderRadius: "10px",
+    border: "1px solid #8a2f2f",
+  },
 };
 
 export default App;
@@ -414,6 +564,8 @@ function mapProductToMyItem(product) {
   return {
     id: product.product_id,
     product_id: product.product_id,
+    seller_id: product.seller_id,
+    seller_name: product.seller_name,
     title: product.title,
     brand: product.brand,
     size: product.size,
@@ -428,6 +580,7 @@ function mapProductToMyItem(product) {
     weight: product.weight_kg,
     weight_kg: product.weight_kg,
     water_saved_liters: product.water_saved_liters,
-    status: "Active",
+    is_active: product.is_active,
+    status: product.is_active ? "Active" : "Sold",
   };
 }

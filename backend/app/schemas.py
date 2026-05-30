@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -63,6 +63,7 @@ class ProductUpdate(BaseModel):
 class ProductResponse(BaseModel):
     product_id: int
     seller_id: int
+    seller_name: Optional[str] = None
     title: str
     description: Optional[str]
     category: Optional[str]
@@ -77,6 +78,7 @@ class ProductResponse(BaseModel):
     price: float
     image_url: Optional[str]
     is_second_hand: bool
+    is_active: bool
     created_at: datetime
     
     class Config:
@@ -92,7 +94,13 @@ class AddToCartRequest(BaseModel):
 class CartItemResponse(BaseModel):
     cart_id: int
     product_id: int
+    seller_id: int
+    seller_name: Optional[str] = None
     title: str
+    brand: Optional[str] = None
+    size: Optional[str] = None
+    image_url: Optional[str] = None
+    water_saved_liters: Optional[float] = None
     price: float
     added_at: datetime
 
@@ -107,11 +115,70 @@ class CartResponse(BaseModel):
 class CheckoutResponse(BaseModel):
     message: str
     order_id: int
+    order_ids: List[int] = Field(default_factory=list)
     total_amount: float
     water_saved_liters: float
     points_earned: int
     total_water_saved_all_time: float
     tree_stage: str
+
+class OrderProductResponse(BaseModel):
+    product_id: int
+    seller_id: int
+    title: str
+    brand: Optional[str] = None
+    size: Optional[str] = None
+    color: Optional[str] = None
+    category: Optional[str] = None
+    image_url: Optional[str] = None
+    water_saved_liters: Optional[float] = None
+
+class OrderResponse(BaseModel):
+    order_id: int
+    product_id: int
+    seller_id: int
+    seller_name: Optional[str] = None
+    price: float
+    status: str
+    ordered_at: datetime
+    product: OrderProductResponse
+
+class PublicImpactResponse(BaseModel):
+    total_water_saved_liters: float
+    total_items_reused: int
+    virtual_trees: int
+    real_trees_earned: int = 0
+    impact_points: int
+
+class PublicTreeResponse(BaseModel):
+    stage: str
+    label: str
+    description: Optional[str] = None
+    water_saved: float
+    total_water_saved_liters: Optional[float] = None
+    current_tree_liters: float = 0
+    current_tree_goal_liters: float = 10000
+    real_tree_goal_liters: float = 50000
+    legacy_goal_liters: float = 100000
+    next_stage_threshold: Optional[float] = None
+    remaining_to_next: float
+    remaining_to_next_tree: float = 10000
+    virtual_trees: int = 0
+    real_trees_earned: int = 0
+    legacy_milestone_reached: bool = False
+
+class PublicProfileResponse(BaseModel):
+    user_id: int
+    seller_id: Optional[int] = None
+    name: str
+    location: Optional[str] = None
+    rating: Optional[float] = None
+    total_sales: Optional[int] = None
+    verified: Optional[bool] = None
+    joined_at: datetime
+    impact: PublicImpactResponse
+    tree: PublicTreeResponse
+    active_products: List[ProductResponse]
 
 # =====================================================
 # IMPACT SCHEMAS
