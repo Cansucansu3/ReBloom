@@ -26,7 +26,10 @@ def checkout(
     ).all()
     
     if not cart_items:
-        raise HTTPException(status_code=400, detail="Cart is empty")
+        raise HTTPException(
+            status_code=409,
+            detail="This item was purchased by another user. Your cart has been updated.",
+        )
 
     checkout_items = []
     stale_items = []

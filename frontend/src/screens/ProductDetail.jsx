@@ -22,6 +22,8 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const [comments, setComments] = useState([]);
   const [commentMessage, setCommentMessage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
+  const [cartAdded, setCartAdded] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
   const [likeMessage, setLikeMessage] = useState("");
   const rawWaterSaved = item.water_saved_liters ?? item.waterSaved;
   const waterSaved = Number.isFinite(Number(rawWaterSaved))
@@ -31,6 +33,12 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const weightLabel = item.weight_kg ?? item.weight;
   const isSold = item.is_active === false || item.status === "Sold";
   const displayGender = formatGender(item.gender);
+
+  useEffect(() => {
+    setCartAdded(false);
+    setCartLoading(false);
+    setCartMessage("");
+  }, [item.id, item.product_id]);
 
   useEffect(() => {
     const productId = item.product_id || item.id;
@@ -77,11 +85,24 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   };
 
   const handleAddToCart = async () => {
+    if (cartAdded || cartLoading) return;
+
+    setCartLoading(true);
+    setCartMessage("");
+
     try {
       await addToCart(item.product_id || item.id);
       setCartMessage("Added to cart.");
+      setCartAdded(true);
     } catch (err) {
-      setCartMessage(`Could not add to cart: ${err.message}`);
+      if (String(err.message || "").toLowerCase().includes("already in cart")) {
+        setCartMessage("This item is already in your cart.");
+        setCartAdded(true);
+      } else {
+        setCartMessage(`Could not add to cart: ${err.message}`);
+      }
+    } finally {
+      setCartLoading(false);
     }
   };
 
@@ -152,8 +173,21 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
             Add to Favorites
           </button>
           {!isSold && (
-            <button onClick={handleAddToCart} style={styles.cartButton}>
-              Add to Cart
+            <button
+              onClick={handleAddToCart}
+              disabled={cartAdded || cartLoading}
+              style={{
+                ...styles.cartButton,
+                ...(cartAdded ? styles.cartButtonAdded : {}),
+                opacity: cartLoading ? 0.7 : 1,
+                cursor: cartAdded || cartLoading ? "default" : "pointer",
+              }}
+            >
+              {cartLoading
+                ? "Adding..."
+                : cartAdded
+                  ? "Added to Cart ✓"
+                  : "Add to Cart"}
             </button>
           )}
           <button onClick={() => onShowOutfit?.(item)} style={styles.outfitButton}>
@@ -323,6 +357,9 @@ const styles = {
     fontWeight: "bold",
     fontSize: "16px",
     cursor: "pointer",
+  },
+  cartButtonAdded: {
+    background: "#2d5a27",
   },
   outfitButton: {
     width: "100%",
