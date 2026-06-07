@@ -8,6 +8,7 @@ import OutfitScreen from "./screens/OutfitScreen";
 import CartScreen from "./screens/CartScreen";
 import GardenScreen from "./screens/GardenScreen";
 import SellerProfileScreen from "./screens/SellerProfileScreen";
+import rebloomMark from "./assets/rebloom-mark.png";
 import {
   clearToken,
   getMyProducts,
@@ -245,6 +246,11 @@ function App() {
     }
   };
 
+  const getNavItemStyle = (targetView) => ({
+    ...styles.navItem,
+    ...(view === targetView ? styles.navItemActive : {}),
+  });
+
   return (
     <div
       className="App"
@@ -276,7 +282,10 @@ function App() {
       ) : (
         <>
           <header style={styles.header}>
-            <h1 style={{ margin: 0 }}>ReBloom</h1>
+            <h1 style={styles.logoTitle}>
+              <img src={rebloomMark} alt="" style={styles.logoMark} />
+              <span>ReBloom</span>
+            </h1>
             <form onSubmit={handleSearch} style={styles.searchContainer}>
               <input
                 type="text"
@@ -431,22 +440,22 @@ function App() {
       )}
 
       <nav style={styles.navBar}>
-        <button onClick={showHome} style={styles.navItem}>
+        <button onClick={showHome} style={getNavItemStyle("results")}>
           Home
         </button>
-        <button onClick={showLens} style={styles.navItem}>
+        <button onClick={showLens} style={getNavItemStyle("lens")}>
           Lens
         </button>
-        <button onClick={showMyItems} style={styles.navItem}>
+        <button onClick={showMyItems} style={getNavItemStyle("myItems")}>
           My Items
         </button>
-        <button onClick={showCart} style={styles.navItem}>
+        <button onClick={showCart} style={getNavItemStyle("cart")}>
           Cart
         </button>
-        <button onClick={showGarden} style={styles.navItem}>
+        <button onClick={showGarden} style={getNavItemStyle("garden")}>
           Garden
         </button>
-        <button onClick={showProfile} style={styles.navItem}>
+        <button onClick={showProfile} style={getNavItemStyle("profile")}>
           Profile
         </button>
       </nav>
@@ -456,33 +465,67 @@ function App() {
 
 const styles = {
   header: {
-    background: "#2d5a27",
+    background:
+      "linear-gradient(180deg, #2f682d 0%, #245a24 68%, #214f20 100%)",
     color: "white",
-    padding: "15px",
+    padding: "10px 14px 16px",
     textAlign: "center",
+    boxShadow: "0 10px 24px rgba(31, 63, 28, 0.12)",
+  },
+  logoTitle: {
+    margin: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    color: "#06180b",
+    fontSize: "clamp(42px, 7vw, 58px)",
+    lineHeight: 0.95,
+    fontWeight: 800,
+    letterSpacing: "-0.02em",
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    textShadow: "0 1px 0 rgba(255, 255, 255, 0.1)",
+  },
+  logoMark: {
+    width: "48px",
+    height: "42px",
+    objectFit: "cover",
+    objectPosition: "center",
+    borderRadius: "14px",
+    background: "#fbf7ee",
+    boxShadow: "0 6px 14px rgba(12, 40, 18, 0.16)",
   },
   searchContainer: {
     display: "flex",
     justifyContent: "center",
-    marginTop: "10px",
-    gap: "5px",
+    alignItems: "center",
+    margin: "8px auto 0",
+    gap: "8px",
+    maxWidth: "990px",
   },
   searchInput: {
-    padding: "8px",
-    borderRadius: "20px",
+    padding: "12px 14px",
+    borderRadius: "999px",
     border: "none",
     width: "70%",
+    minWidth: 0,
+    fontSize: "16px",
+    boxShadow: "inset 0 0 0 1px rgba(31, 63, 28, 0.05)",
   },
   searchBtn: {
     background: "white",
     border: "none",
-    borderRadius: "20px",
-    padding: "5px 10px",
+    borderRadius: "999px",
+    padding: "10px 16px",
     cursor: "pointer",
+    fontSize: "15px",
+    fontWeight: 650,
+    boxShadow: "0 6px 14px rgba(12, 40, 18, 0.12)",
   },
   photoSearchBtn: {
-    width: "38px",
-    height: "38px",
+    width: "44px",
+    height: "44px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -491,8 +534,8 @@ const styles = {
     border: "none",
     borderRadius: "50%",
     cursor: "pointer",
-    boxShadow: "0 2px 8px rgba(31, 63, 28, 0.18)",
-    flex: "0 0 38px",
+    boxShadow: "0 6px 14px rgba(12, 40, 18, 0.15)",
+    flex: "0 0 44px",
   },
   cameraIconWrap: {
     position: "relative",
@@ -517,12 +560,19 @@ const styles = {
     zIndex: 1000,
   },
   navItem: {
-    background: "none",
+    backgroundColor: "#f1f1f1",
     border: "none",
     color: "#2d5a27",
     fontSize: "12px",
     fontWeight: "bold",
     cursor: "pointer",
+    borderRadius: "999px",
+    padding: "7px 12px",
+    transition: "background-color 0.2s ease, color 0.2s ease",
+  },
+  navItemActive: {
+    backgroundColor: "#e8f5e9",
+    boxShadow: "inset 0 0 0 1px rgba(45, 90, 39, 0.18)",
   },
   miniCard: {
     border: "1px solid #eee",
@@ -569,6 +619,7 @@ function mapProductToMyItem(product) {
     title: product.title,
     brand: product.brand,
     size: product.size,
+    gender: product.gender,
     color: product.color,
     price: product.price,
     preview: product.image_url,

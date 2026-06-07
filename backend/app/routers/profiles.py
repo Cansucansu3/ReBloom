@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.services.impact_service import get_tree_stage_payload
+from app.services.impact_service import (
+    apply_impact_milestones,
+    get_or_create_legacy_certificate,
+    get_tree_stage_payload,
+    serialize_certificate,
+)
 
 
 router = APIRouter(prefix="/profiles", tags=["Public Profiles"])
@@ -48,6 +53,12 @@ def build_public_profile(db: Session, user: models.User, seller: models.SellerPr
 
     water_saved = impact.total_water_saved_liters if impact else 0
     tree = get_tree_payload(water_saved)
+    certificate = None
+    if impact:
+        apply_impact_milestones(impact)
+        tree["real_trees_earned"] = impact.real_trees_earned or 0
+        certificate = get_or_create_legacy_certificate(db, user, impact)
+        db.commit()
 
     return {
         "user_id": user.user_id,
@@ -64,6 +75,7 @@ def build_public_profile(db: Session, user: models.User, seller: models.SellerPr
             "virtual_trees": impact.virtual_trees if impact else 0,
             "real_trees_earned": impact.real_trees_earned if impact else 0,
             "impact_points": impact.impact_points if impact else 0,
+            "legacy_certificate": serialize_certificate(certificate),
         },
         "tree": tree,
         "active_products": active_products,

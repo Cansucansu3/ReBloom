@@ -84,6 +84,7 @@ def product_to_dict(product):
         "brand": product.brand,
         "color": product.color,
         "size": product.size,
+        "gender": product.gender,
         "condition": product.condition,
         "material": product.material,
         "weight_kg": product.weight_kg,
@@ -110,6 +111,53 @@ def score_product_similarity(base_product, candidate):
         score += 1
 
     return score
+
+
+def infer_gender(product):
+    explicit = str(getattr(product, "gender", "") or "").strip().lower()
+    if explicit in {"women", "woman", "female", "girls", "girl"}:
+        return "women"
+    if explicit in {"men", "man", "male", "boys", "boy"}:
+        return "men"
+    if explicit == "unisex":
+        return "unisex"
+
+    text = " ".join(
+        str(value or "").lower()
+        for value in [
+            product.title,
+            product.description,
+            product.subcategory,
+            product.category,
+        ]
+    )
+    if "for her" in text:
+        return "women"
+    if "for him" in text:
+        return "men"
+    if any(term in text for term in ["women", "woman", "female", "girls", "girl"]):
+        return "women"
+    if any(term in text for term in [" men ", " men's", " mens", " male", "boys", "boy"]):
+        return "men"
+    return "unisex"
+
+
+def is_gender_compatible(base_product, candidate):
+    base_gender = infer_gender(base_product)
+    candidate_gender = infer_gender(candidate)
+
+    if base_gender == "unisex" or candidate_gender == "unisex":
+        return True
+    return base_gender == candidate_gender
+
+
+def allowed_genders_for(base_product):
+    base_gender = infer_gender(base_product)
+    if base_gender == "women":
+        return ["Women", "Unisex"]
+    if base_gender == "men":
+        return ["Men", "Unisex"]
+    return ["Women", "Men", "Unisex"]
 
 
 def normalize_category(category):
@@ -250,6 +298,13 @@ def score_outfit_metadata(base_product, candidate, target_category):
 
     score += score_color_compatibility(base_product.color, candidate.color)
 
+    base_gender = infer_gender(base_product)
+    candidate_gender = infer_gender(candidate)
+    if base_gender != "unisex" and candidate_gender == base_gender:
+        score += 0.8
+    elif candidate_gender == "unisex":
+        score += 0.3
+
     if base_product.material and candidate.material:
         if base_product.material == candidate.material:
             score += 0.3
@@ -274,6 +329,7 @@ def build_outfit_groups(base_product, candidates):
         slot_candidates = [
             candidate for candidate in candidates
             if infer_outfit_category(candidate) == target_category
+            and is_gender_compatible(base_product, candidate)
         ]
         if not slot_candidates:
             continue
@@ -482,6 +538,7 @@ def recommend_similar_products(
     scored = [
         (score_product_similarity(base_product, candidate), candidate)
         for candidate in candidates
+        if is_gender_compatible(base_product, candidate)
     ]
     scored = [item for item in scored if item[0] > 0]
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -489,6 +546,8 @@ def recommend_similar_products(
     return {
         "title": "Similar items",
         "base_product": product_to_dict(base_product),
+        "base_gender": infer_gender(base_product),
+        "allowed_genders": allowed_genders_for(base_product),
         "products": [product_to_dict(product) for _, product in scored[:8]],
     }
 
@@ -533,6 +592,9 @@ def recommend_similar_to_liked(
     scored_by_product = {}
     for seed_product in seed_products:
         for candidate in candidates:
+            if not is_gender_compatible(seed_product, candidate):
+                continue
+
             score = score_product_similarity(seed_product, candidate)
             if score <= 0:
                 continue
@@ -584,6 +646,8 @@ def recommend_outfit(
         "title": "Complete the Look",
         "base_product": product_to_dict(base_product),
         "base_category": base_category,
+        "base_gender": infer_gender(base_product),
+        "allowed_genders": allowed_genders_for(base_product),
         "target_categories": target_categories,
         "scoring": scoring,
         "groups": groups,

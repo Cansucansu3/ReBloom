@@ -1,6 +1,6 @@
 # ReBloom AI Experiment Notes
 
-These notes summarize the CLIP + compatibility classifier experiment used for the report/presentation.
+These notes summarize the AI experiments used for the report/presentation. The first Polyvore experiments were notebook prototypes; the latest recorded compatibility result is the `clip_10000` experiment suite.
 
 ## Compatibility Classifier
 
@@ -67,24 +67,59 @@ These notes summarize the CLIP + compatibility classifier experiment used for th
 | `max_per_class = 3000` | 3,000 | 3,000 | 13,684 | 63.67% | 0.64 | 0.64 | 0.64 | 0.64 |
 | `max_per_class = 5000` | 5,000 | 5,000 | 22,657 | 62.13% | 0.63 | 0.60 | 0.62 | 0.62 |
 
+## Updated Polyvore Suite Results
+
+The later Polyvore retraining pipeline used a cleaner category-controlled pair-generation approach and compared multiple classifiers on the same embedding features.
+
+- Dataset source: Polyvore Outfits
+- Polyvore split: disjoint
+- Metadata items: 251,008
+- Total outfits loaded: 70,280
+- Selected compatible outfits: 10,000
+- Feature extractor: CLIP ViT-B/32
+- Pairwise samples generated: 80,736
+- Training pair rows: 76,528
+- Validation pair rows: 6,996
+- Test pair rows: 35,476
+- Model selection metric: validation macro F1
+
+### `clip_10000` Classifier Comparison
+
+| Feature extractor | Classifier | Validation accuracy | Validation macro F1 | Validation compatible F1 | Test accuracy | Test macro F1 | Test compatible F1 | Test ROC-AUC |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CLIP | Logistic Regression | 65.89% | 0.652 | 0.701 | 67.57% | 0.670 | 0.712 | 0.747 |
+| CLIP | Linear SVM | 65.27% | 0.644 | 0.700 | 67.47% | 0.669 | 0.714 | 0.747 |
+| CLIP | Random Forest | 56.30% | 0.481 | 0.687 | 57.12% | 0.501 | 0.688 | 0.682 |
+| CLIP | MLP | 64.09% | 0.638 | 0.671 | 64.49% | 0.642 | 0.673 | 0.704 |
+
+The best model by validation macro F1 was Logistic Regression on CLIP embeddings. It also achieved the strongest overall test performance with 67.57% test accuracy, 0.670 test macro F1, 0.712 compatible-class F1, and 0.747 ROC-AUC.
+
+### DINOv2 Comparison
+
+We also tested DINOv2 embeddings with 3,000 compatible outfits. The best DINOv2 model was MLP, with 59.82% test accuracy and 0.585 test macro F1. A larger DINOv2 10,000-outfit run failed because the Colab process was killed by the runtime, most likely due to memory limits. Since CLIP 10,000 performed better and the production AI service already uses CLIP embeddings, CLIP remained the preferred feature extractor for integration.
+
 ## Model Selection Rationale
 
-Accuracy was not the only selection criterion. We also compared precision, recall, and F1-score, especially for the `Compatible` class because the application uses this model to rank compatible outfit recommendations in Complete the Look.
+Accuracy was not the only selection criterion. We also compared macro F1, compatible-class F1, and ROC-AUC. Macro F1 is important because the model must perform reasonably on both `Compatible` and `Incompatible` classes, while compatible-class F1 is especially relevant for Complete the Look because the application ranks items that should work together in an outfit.
 
-The `max_per_class = 1000` model performed best across all recorded metrics:
+The current best recorded Polyvore experiment is `clip_10000` with Logistic Regression:
 
-- Highest validation accuracy: 77.27%
-- Highest Compatible precision: 0.79
-- Highest Compatible recall: 0.73
-- Highest Compatible F1-score: 0.76
-- Highest macro F1-score: 0.77
-
-The larger 3,000/class and 5,000/class experiments introduced more data diversity, but their validation performance decreased. This does not automatically mean that the larger datasets are useless; the task may become harder because outfit-level labels are converted into pairwise item labels. In an incompatible outfit, some item pairs can still be visually compatible, which can introduce label noise. For the current demo and evaluation setup, the 1,000/class model is the best-performing and most stable choice.
+- Validation accuracy: 65.89%
+- Validation macro F1: 0.652
+- Validation compatible F1: 0.701
+- Test accuracy: 67.57%
+- Test macro F1: 0.670
+- Test compatible F1: 0.712
+- Test ROC-AUC: 0.747
 
 ## Presentation Wording
 
-We used CLIP ViT-B/32 as a feature extractor and trained a Random Forest compatibility classifier on a balanced Polyvore subset. The full compatibility training file contained 16,995 compatible and 16,995 incompatible outfit labels. In our best experiment, we sampled 1,000 compatible and 1,000 incompatible outfits, which produced 23,206 pairwise item samples and reached 77.27% validation accuracy. We also tested larger subsets with 3,000 and 5,000 samples per class; however, performance decreased to 63.67% and 62.13% accuracy. We selected the 1,000/class model because it performed best not only in accuracy, but also in Compatible-class precision, recall, and F1-score, which are important for the recommendation feature.
+We retrained the Polyvore compatibility model using CLIP ViT-B/32 image embeddings and a category-controlled pair-generation pipeline. From 70,280 Polyvore outfits and 251,008 metadata items, we selected 10,000 compatible outfits and generated 80,736 balanced pairwise samples. The data was evaluated with separate train, validation, and test pair sets, containing 76,528 training rows, 6,996 validation rows, and 35,476 test rows. We compared Logistic Regression, Linear SVM, Random Forest, and MLP classifiers using validation macro F1 as the selection criterion. Logistic Regression performed best overall, reaching 67.57% test accuracy, 0.670 test macro F1, 0.712 compatible-class F1, and 0.747 ROC-AUC.
 
 ## Note
 
-These numbers were verified from the saved notebook outputs in `rebloomai2.ipynb`.
+The initial notebook prototype numbers were verified from saved notebook outputs in `rebloomai2.ipynb`. The updated `clip_10000` results were verified from the exported experiment files:
+
+- `rebloom_polyvore_clip_10000.zip`
+- `polyvore_suite_summary_all_experiments.zip`
+- Structured CSV saved in this repository: `docs/ai_results/polyvore_compatibility_clip_10000_comparison.csv`

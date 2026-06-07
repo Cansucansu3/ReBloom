@@ -19,6 +19,7 @@ const mapProductForDetail = (product) => ({
   category: product.category,
   subcategory: product.subcategory,
   size: product.size,
+  gender: product.gender,
   color: product.color,
   condition: product.condition,
   material: product.material,

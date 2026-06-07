@@ -18,6 +18,7 @@ const ProductCard = ({ item, onClick }) => {
         padding: "10px",
         backgroundColor: "white",
         cursor: "pointer",
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -42,8 +43,23 @@ const ProductCard = ({ item, onClick }) => {
           }}
         />
       </div>
-      <h4 style={{ margin: "8px 0" }}>{item.title}</h4>
-      <p style={{ color: "#2d5a27", fontWeight: "bold" }}>{item.price} TL</p>
+      <h4
+        style={{
+          margin: "8px 0",
+          minHeight: "44px",
+          color: "#625b70",
+          lineHeight: 1.25,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {item.title}
+      </h4>
+      <p style={{ color: "#2d5a27", fontWeight: "bold", marginBottom: "8px" }}>
+        {item.price} TL
+      </p>
       <div
         style={{
           backgroundColor: "#e3f2fd",

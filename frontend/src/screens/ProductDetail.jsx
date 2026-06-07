@@ -1,9 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { addToCart, likeProduct, recordProductView } from "../api/api";
+import {
+  addProductComment,
+  addToCart,
+  getProductComments,
+  likeProduct,
+  recordProductView,
+} from "../api/api";
+
+const formatGender = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (["men", "man", "male"].includes(normalized)) return "Men";
+  if (["women", "woman", "female"].includes(normalized)) return "Women";
+  if (normalized === "unisex") return "Unisex";
+
+  return "Unisex";
+};
 
 const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
+  const [commentMessage, setCommentMessage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
   const [likeMessage, setLikeMessage] = useState("");
   const rawWaterSaved = item.water_saved_liters ?? item.waterSaved;
@@ -13,6 +30,7 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const materialLabel = item.material || item.fabric || "Unknown";
   const weightLabel = item.weight_kg ?? item.weight;
   const isSold = item.is_active === false || item.status === "Sold";
+  const displayGender = formatGender(item.gender);
 
   useEffect(() => {
     const productId = item.product_id || item.id;
@@ -21,13 +39,40 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
     recordProductView(productId).catch(() => {});
   }, [item.id, item.product_id]);
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      setComments([
-        ...comments,
-        { user: "User_" + Math.floor(Math.random() * 100), text: newComment },
-      ]);
+  useEffect(() => {
+    const productId = item.product_id || item.id;
+    if (!productId) return;
+
+    let mounted = true;
+    setCommentMessage("");
+
+    getProductComments(productId)
+      .then((data) => {
+        if (!mounted) return;
+        setComments(data || []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setComments([]);
+        setCommentMessage("Comments could not be loaded.");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [item.id, item.product_id]);
+
+  const handleAddComment = async () => {
+    const text = newComment.trim();
+    if (!text) return;
+
+    try {
+      const savedComment = await addProductComment(item.product_id || item.id, text);
+      setComments((currentComments) => [...currentComments, savedComment]);
       setNewComment("");
+      setCommentMessage("");
+    } catch (err) {
+      setCommentMessage(`Could not add comment: ${err.message}`);
     }
   };
 
@@ -77,7 +122,7 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
             <strong>Color:</strong> {item.color || "Unknown"}
           </p>
           <p>
-            <strong>Gender:</strong> {item.gender || item.subcategory || "Unisex"}
+            <strong>Gender:</strong> {displayGender}
           </p>
         </div>
 
@@ -127,11 +172,13 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
           <p style={styles.emptyComment}>No comments yet.</p>
         ) : (
           comments.map((comment, index) => (
-            <p key={index} style={styles.comment}>
-              <strong>{comment.user}:</strong> {comment.text}
+            <p key={comment.comment_id || index} style={styles.comment}>
+              <strong>{comment.username || comment.user_name || "ReBloom user"}:</strong>{" "}
+              {comment.text}
             </p>
           ))
         )}
+        {commentMessage && <p style={styles.commentMessage}>{commentMessage}</p>}
 
         <div style={styles.commentForm}>
           <input
@@ -140,7 +187,7 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
             placeholder="Add a comment..."
             style={styles.commentInput}
           />
-          <button onClick={handleAddComment} style={styles.sendButton}>
+          <button type="button" onClick={handleAddComment} style={styles.sendButton}>
             Send
           </button>
         </div>
@@ -313,6 +360,11 @@ const styles = {
     borderBottom: "1px solid #f0f0f0",
     paddingBottom: "8px",
     marginBottom: "8px",
+  },
+  commentMessage: {
+    color: "#8a2f2f",
+    fontSize: "13px",
+    margin: "8px 0",
   },
   commentForm: {
     display: "flex",

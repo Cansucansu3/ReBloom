@@ -14,6 +14,7 @@ const toDetailItem = (product) => ({
   brand: product.brand,
   category: product.category,
   subcategory: product.subcategory,
+  gender: product.gender,
   size: product.size,
   color: product.color,
   condition: product.condition,

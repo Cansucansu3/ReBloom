@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { API_BASE_URL, getPublicSellerProfile } from "../api/api";
+import LegacyCertificateCard from "../components/LegacyCertificateCard";
 import ProductCard from "../components/ProductCard";
-import { buildGardenSlots, getGardenLevelInfo } from "../utils/gamificationLogic";
+import {
+  buildGardenSlots,
+  getGardenLevelInfo,
+  getTreeImageFilename,
+} from "../utils/gamificationLogic";
 
 const SellerProfileScreen = ({ profile: initialProfile, sellerId, onBack, onProductSelect }) => {
   const [profile, setProfile] = useState(initialProfile || null);
@@ -91,7 +96,7 @@ const SellerProfileScreen = ({ profile: initialProfile, sellerId, onBack, onProd
               <div key={slot.id} style={slot.filled ? styles.publicPlotFilled : styles.publicPlot}>
                 {slot.filled ? (
                   <img
-                    src={`${API_BASE_URL}/static/trees/${slot.stage}.png`}
+                    src={`${API_BASE_URL}/static/trees/${getTreeImageFilename(slot.stage)}`}
                     alt=""
                     style={styles.publicPlotTree}
                   />
@@ -110,6 +115,11 @@ const SellerProfileScreen = ({ profile: initialProfile, sellerId, onBack, onProd
         <Stat label="Second-hand buys" value={profile.impact.total_items_reused} />
         <Stat label="Impact points" value={profile.impact.impact_points} />
       </section>
+
+      <LegacyCertificateCard
+        certificate={profile.impact.legacy_certificate}
+        totalWaterSaved={profile.impact.total_water_saved_liters}
+      />
 
       <section style={styles.productsSection}>
         <h3 style={styles.sectionTitle}>Active Listings</h3>
@@ -178,6 +188,7 @@ function mapProductForDetail(product) {
     brand: product.brand,
     category: product.category,
     subcategory: product.subcategory,
+    gender: product.gender,
     size: product.size,
     color: product.color,
     condition: product.condition,

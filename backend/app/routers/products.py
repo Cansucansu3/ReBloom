@@ -36,6 +36,7 @@ def create_product(
         brand=product_data.brand,
         color=product_data.color,
         size=product_data.size,
+        gender=product_data.gender or "Unisex",
         condition=product_data.condition,
         material=product_data.material,
         weight_kg=product_data.weight_kg,

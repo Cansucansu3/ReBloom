@@ -72,6 +72,7 @@ def view_cart(
                 "title": product.title,
                 "brand": product.brand,
                 "size": product.size,
+                "gender": product.gender,
                 "image_url": product.image_url,
                 "water_saved_liters": product.water_saved_liters,
                 "price": product.price,

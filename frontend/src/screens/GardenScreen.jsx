@@ -1,19 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
-  API_BASE_URL,
   clearToken,
   getLeaderboard,
   getMyImpact,
   getPublicUserProfile,
 } from "../api/api";
-import {
-  VIRTUAL_TREE_GOAL_LITERS,
-  buildGardenSlots,
-  getCurrentTreeLiters,
-  getCurrentTreeProgressPercent,
-  getGardenLevelInfo,
-  getTreeStageInfo,
-} from "../utils/gamificationLogic";
+import VirtualGardenCard from "../components/VirtualGardenCard";
 
 const GardenScreen = ({ onAuthRequired, onSellerProfileSelect }) => {
   const [impact, setImpact] = useState(null);
@@ -59,9 +51,6 @@ const GardenScreen = ({ onAuthRequired, onSellerProfileSelect }) => {
   }, [onAuthRequired]);
 
   const waterSaved = Number(impact?.total_water_saved_liters || 0);
-  const currentTreeLiters = getCurrentTreeLiters(waterSaved);
-  const stage = getTreeStageInfo(currentTreeLiters);
-  const gardenLevel = getGardenLevelInfo(impact?.virtual_trees || 0);
 
   const handleLeaderboardClick = async (entry) => {
     setMessage("");
@@ -84,64 +73,7 @@ const GardenScreen = ({ onAuthRequired, onSellerProfileSelect }) => {
 
   return (
     <div style={styles.page}>
-      <section style={styles.hero}>
-        <div style={styles.treeWrap}>
-          <img
-            src={`${API_BASE_URL}/static/trees/${stage.key}.png`}
-            alt={stage.label}
-            style={styles.mainTree}
-          />
-        </div>
-        <p style={styles.eyebrow}>My Virtual Garden</p>
-        <h2 style={styles.title}>{stage.label}</h2>
-        <p style={styles.copy}>{stage.description}</p>
-
-        <div style={styles.progressTrack}>
-          <div
-            style={{
-              ...styles.progressFill,
-              width: `${getCurrentTreeProgressPercent(currentTreeLiters)}%`,
-            }}
-          />
-        </div>
-        <p style={styles.progressLabel}>Next tree progress</p>
-        <p style={styles.progressText}>
-          {Math.round(currentTreeLiters).toLocaleString()} /{" "}
-          {VIRTUAL_TREE_GOAL_LITERS.toLocaleString()} L saved
-        </p>
-        <p style={styles.totalWaterText}>
-          Total saved: {Math.round(waterSaved).toLocaleString()} L
-        </p>
-      </section>
-
-      <section style={styles.statsGrid}>
-        <Stat label="Virtual trees" value={impact?.virtual_trees || 0} />
-        <Stat label="Real trees" value={impact?.real_trees_earned || 0} />
-        <Stat label="Second-hand buys" value={impact?.total_items_reused || 0} />
-        <Stat label="Impact points" value={impact?.impact_points || 0} />
-      </section>
-
-      <section style={styles.gardenGrid}>
-        <div style={styles.gardenLevelHeader}>
-          <strong>Garden Level {gardenLevel.level}</strong>
-          <span>
-            {gardenLevel.completedInLevel} / {gardenLevel.slotCount} trees planted in this garden
-          </span>
-        </div>
-        {buildGardenSlots(impact?.virtual_trees, stage.key).map((slot) => (
-          <div key={slot.id} style={slot.filled ? styles.plotFilled : styles.plot}>
-            {slot.filled ? (
-              <img
-                src={`${API_BASE_URL}/static/trees/${slot.stage}.png`}
-                alt=""
-                style={styles.plotTree}
-              />
-            ) : (
-              <span style={styles.emptyDot} />
-            )}
-          </div>
-        ))}
-      </section>
+      <VirtualGardenCard impact={impact} totalWaterSaved={waterSaved} />
 
       <section style={styles.leaderboard}>
         <h3 style={styles.sectionTitle}>Leaderboard</h3>
@@ -165,15 +97,6 @@ const GardenScreen = ({ onAuthRequired, onSellerProfileSelect }) => {
     </div>
   );
 };
-
-function Stat({ label, value }) {
-  return (
-    <div style={styles.stat}>
-      <strong>{Number(value || 0).toLocaleString()}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
 
 const styles = {
   page: {

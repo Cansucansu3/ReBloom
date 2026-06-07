@@ -10,8 +10,8 @@ const WATER_FOOTPRINTS = {
 };
 
 export const VIRTUAL_TREE_GOAL_LITERS = 10000;
-export const REAL_TREE_GOAL_LITERS = 50000;
 export const LEGACY_GOAL_LITERS = 100000;
+export const REAL_TREE_GOAL_LITERS = LEGACY_GOAL_LITERS;
 export const GARDEN_PLOTS_PER_LEVEL = 12;
 
 const normalizeMaterial = (value) => {
@@ -95,6 +95,14 @@ export const TREE_STAGES = [
     description: "You reached the legacy tree stage.",
   },
 ];
+
+export const getTreeImageFilename = (stageKey, options = {}) => {
+  if (options.animated && stageKey === "mature_oak") {
+    return "mature_tree_animated.gif";
+  }
+
+  return `${stageKey}.png`;
+};
 
 export const getTreeStageInfo = (score) => {
   const value = Number(score) || 0;

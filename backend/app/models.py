@@ -73,6 +73,7 @@ class Product(Base):
     brand = Column(String)
     color = Column(String)
     size = Column(String)
+    gender = Column(String, default="Unisex")
     condition = Column(String)
     material = Column(String)
     weight_kg = Column(Float, nullable=True)
@@ -90,6 +91,7 @@ class Product(Base):
     interactions = relationship("UserInteraction", back_populates="product")
     cart_entries = relationship("Cart", back_populates="product")
     order_entries = relationship("Orders", back_populates="product")
+    comments = relationship("ProductComment", back_populates="product")
 
     @property
     def seller_name(self):
@@ -124,6 +126,18 @@ class UserInteraction(Base):
     # Relationships
     user = relationship("User", back_populates="interactions")
     product = relationship("Product", back_populates="interactions")
+
+class ProductComment(Base):
+    __tablename__ = "product_comments"
+
+    comment_id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.product_id"))
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    product = relationship("Product", back_populates="comments")
 
 class UserPreferenceProfile(Base):
     __tablename__ = "user_preference_profiles"
@@ -184,6 +198,38 @@ class UserImpact(Base):
     
     # Relationships
     user = relationship("User", back_populates="impact")
+
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    certificate_id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), index=True)
+    certificate_hash = Column(String, unique=True, index=True, nullable=False)
+    total_water_saved_liters = Column(Float, default=0.0)
+    status = Column(String, default="generated")
+    partner_name = Column(String, default="ReBloom Legacy Forest Partner")
+    planting_location = Column(String, default="Antalya ReBloom Demo Forest")
+    gps_location = Column(String, nullable=True)
+    issued_at = Column(DateTime(timezone=True), server_default=func.now())
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = relationship("User")
+    partner_logs = relationship("PartnerRequestLog", back_populates="certificate")
+
+
+class PartnerRequestLog(Base):
+    __tablename__ = "partner_request_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    certificate_id = Column(String, ForeignKey("certificates.certificate_id"))
+    partner_name = Column(String, default="ReBloom Legacy Forest Partner")
+    request_status = Column(String, default="demo_generated")
+    request_payload = Column(Text, nullable=True)
+    response_payload = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    certificate = relationship("Certificate", back_populates="partner_logs")
 
 class ProductImpactFactors(Base):
     __tablename__ = "product_impact_factors"

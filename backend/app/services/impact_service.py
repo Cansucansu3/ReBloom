@@ -1,4 +1,6 @@
 import re
+import hashlib
+import uuid
 from datetime import datetime
 
 from app import models
@@ -29,8 +31,11 @@ DEFAULT_CATEGORY_WEIGHTS_KG = {
 }
 
 VIRTUAL_TREE_GOAL_LITERS = 10000
-REAL_TREE_GOAL_LITERS = 50000
 LEGACY_GOAL_LITERS = 100000
+REAL_TREE_GOAL_LITERS = LEGACY_GOAL_LITERS
+LEGACY_PARTNER_NAME = "ReBloom Legacy Forest Partner"
+LEGACY_PLANTING_LOCATION = "Antalya ReBloom Demo Forest"
+LEGACY_GPS_LOCATION = "36.8969, 30.7133"
 
 
 TREE_STAGE_THRESHOLDS = [
@@ -150,6 +155,72 @@ def apply_impact_milestones(impact):
     impact.virtual_trees = milestones["virtual_trees"]
     impact.real_trees_earned = milestones["real_trees_earned"]
     return impact
+
+
+def serialize_certificate(certificate):
+    if not certificate:
+        return None
+
+    return {
+        "certificate_id": certificate.certificate_id,
+        "certificate_hash": certificate.certificate_hash,
+        "total_water_saved_liters": certificate.total_water_saved_liters,
+        "status": certificate.status,
+        "partner_name": certificate.partner_name,
+        "planting_location": certificate.planting_location,
+        "gps_location": certificate.gps_location,
+        "issued_at": certificate.issued_at,
+        "confirmed_at": certificate.confirmed_at,
+    }
+
+
+def get_or_create_legacy_certificate(db, user, impact):
+    if not user or not impact:
+        return None
+
+    total = float(impact.total_water_saved_liters or 0)
+    if total < LEGACY_GOAL_LITERS:
+        return None
+
+    existing = db.query(models.Certificate).filter(
+        models.Certificate.user_id == user.user_id
+    ).order_by(models.Certificate.issued_at.desc()).first()
+
+    if existing:
+        return existing
+
+    certificate_id = str(uuid.uuid4())
+    certificate_hash = hashlib.sha256(
+        f"{certificate_id}:{user.user_id}:{user.email}:{round(total, 2)}".encode("utf-8")
+    ).hexdigest()[:24].upper()
+
+    certificate = models.Certificate(
+        certificate_id=certificate_id,
+        user_id=user.user_id,
+        certificate_hash=certificate_hash,
+        total_water_saved_liters=total,
+        status="generated",
+        partner_name=LEGACY_PARTNER_NAME,
+        planting_location=LEGACY_PLANTING_LOCATION,
+        gps_location=LEGACY_GPS_LOCATION,
+        confirmed_at=datetime.now(),
+    )
+    db.add(certificate)
+    db.flush()
+
+    partner_log = models.PartnerRequestLog(
+        certificate_id=certificate.certificate_id,
+        partner_name=LEGACY_PARTNER_NAME,
+        request_status="demo_generated",
+        request_payload=(
+            f"user_id={user.user_id}; total_water_saved_liters={round(total, 2)}; "
+            f"location={LEGACY_PLANTING_LOCATION}"
+        ),
+        response_payload="Demo certificate generated locally; external partner API pending.",
+    )
+    db.add(partner_log)
+
+    return certificate
 
 
 def get_tree_stage_payload(total_water_saved_liters):

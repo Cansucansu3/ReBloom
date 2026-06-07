@@ -107,6 +107,17 @@ export async function likeProduct(productId) {
   });
 }
 
+export async function getProductComments(productId) {
+  return request(`/interactions/comments/${productId}`);
+}
+
+export async function addProductComment(productId, text) {
+  return request(`/interactions/comments/${productId}`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
 export async function recordSearch(query) {
   return request(`/search/?query=${encodeURIComponent(query)}`, {
     method: "POST",

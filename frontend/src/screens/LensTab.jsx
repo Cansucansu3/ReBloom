@@ -164,7 +164,8 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           ? `${metadata.title} | Pattern: ${metadata.pattern}`
           : metadata.title,
         category: metadata.category,
-        subcategory: metadata.gender,
+        subcategory: metadata.category,
+        gender: metadata.gender,
         brand: metadata.brand,
         color: metadata.color,
         size: metadata.size,
@@ -183,6 +184,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           id: savedProduct.product_id,
           product_id: savedProduct.product_id,
           preview: savedProduct.image_url,
+          gender: savedProduct.gender,
           water_saved_liters: savedProduct.water_saved_liters,
           weight_kg: savedProduct.weight_kg,
         },

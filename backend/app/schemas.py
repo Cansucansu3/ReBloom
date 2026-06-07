@@ -43,6 +43,7 @@ class ProductCreate(BaseModel):
     brand: Optional[str] = None
     color: Optional[str] = None
     size: Optional[str] = None
+    gender: Optional[str] = "Unisex"
     condition: Optional[str] = None
     material: Optional[str] = None
     weight_kg: Optional[float] = None
@@ -58,6 +59,7 @@ class ProductUpdate(BaseModel):
     condition: Optional[str] = None
     material: Optional[str] = None
     weight_kg: Optional[float] = None
+    gender: Optional[str] = None
     is_active: Optional[bool] = None
 
 class ProductResponse(BaseModel):
@@ -71,6 +73,7 @@ class ProductResponse(BaseModel):
     brand: Optional[str]
     color: Optional[str]
     size: Optional[str]
+    gender: Optional[str] = "Unisex"
     condition: Optional[str]
     material: Optional[str]
     weight_kg: Optional[float] = None
@@ -81,6 +84,21 @@ class ProductResponse(BaseModel):
     is_active: bool
     created_at: datetime
     
+    class Config:
+        from_attributes = True
+
+class ProductCommentCreate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=500)
+
+class ProductCommentResponse(BaseModel):
+    comment_id: int
+    product_id: int
+    user_id: int
+    username: str
+    user_name: str
+    text: str
+    created_at: datetime
+
     class Config:
         from_attributes = True
 
@@ -99,6 +117,7 @@ class CartItemResponse(BaseModel):
     title: str
     brand: Optional[str] = None
     size: Optional[str] = None
+    gender: Optional[str] = "Unisex"
     image_url: Optional[str] = None
     water_saved_liters: Optional[float] = None
     price: float
@@ -121,6 +140,7 @@ class CheckoutResponse(BaseModel):
     points_earned: int
     total_water_saved_all_time: float
     tree_stage: str
+    legacy_certificate: Optional["LegacyCertificateResponse"] = None
 
 class OrderProductResponse(BaseModel):
     product_id: int
@@ -130,6 +150,7 @@ class OrderProductResponse(BaseModel):
     size: Optional[str] = None
     color: Optional[str] = None
     category: Optional[str] = None
+    gender: Optional[str] = "Unisex"
     image_url: Optional[str] = None
     water_saved_liters: Optional[float] = None
 
@@ -143,12 +164,27 @@ class OrderResponse(BaseModel):
     ordered_at: datetime
     product: OrderProductResponse
 
+class LegacyCertificateResponse(BaseModel):
+    certificate_id: str
+    certificate_hash: str
+    total_water_saved_liters: float
+    status: str
+    partner_name: Optional[str] = None
+    planting_location: Optional[str] = None
+    gps_location: Optional[str] = None
+    issued_at: datetime
+    confirmed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class PublicImpactResponse(BaseModel):
     total_water_saved_liters: float
     total_items_reused: int
     virtual_trees: int
     real_trees_earned: int = 0
     impact_points: int
+    legacy_certificate: Optional[LegacyCertificateResponse] = None
 
 class PublicTreeResponse(BaseModel):
     stage: str
@@ -158,7 +194,7 @@ class PublicTreeResponse(BaseModel):
     total_water_saved_liters: Optional[float] = None
     current_tree_liters: float = 0
     current_tree_goal_liters: float = 10000
-    real_tree_goal_liters: float = 50000
+    real_tree_goal_liters: float = 100000
     legacy_goal_liters: float = 100000
     next_stage_threshold: Optional[float] = None
     remaining_to_next: float
@@ -192,6 +228,7 @@ class ImpactResponse(BaseModel):
     virtual_trees: int
     real_trees_earned: int
     impact_points: int
+    legacy_certificate: Optional[LegacyCertificateResponse] = None
 
 class LeaderboardEntry(BaseModel):
     rank: int

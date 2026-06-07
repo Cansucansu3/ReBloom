@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  API_BASE_URL,
   clearToken,
   getMe,
   getMyImpact,
@@ -8,14 +7,7 @@ import {
   login,
   register,
 } from "../api/api";
-import {
-  VIRTUAL_TREE_GOAL_LITERS,
-  buildGardenSlots,
-  getCurrentTreeLiters,
-  getCurrentTreeProgressPercent,
-  getGardenLevelInfo,
-  getTreeStageInfo,
-} from "../utils/gamificationLogic";
+import VirtualGardenCard from "../components/VirtualGardenCard";
 
 const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
   const [impactWaterSaved, setImpactWaterSaved] = useState(totalWaterSaved || 0);
@@ -24,10 +16,8 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
     virtual_trees: 0,
     real_trees_earned: 0,
     impact_points: 0,
+    legacy_certificate: null,
   });
-  const currentTreeLiters = getCurrentTreeLiters(impactWaterSaved);
-  const currentStage = getTreeStageInfo(currentTreeLiters);
-  const gardenLevel = getGardenLevelInfo(impactStats.virtual_trees, 5);
   const [mode, setMode] = useState("login");
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -49,6 +39,7 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
         virtual_trees: impact.virtual_trees || 0,
         real_trees_earned: impact.real_trees_earned || 0,
         impact_points: impact.impact_points || 0,
+        legacy_certificate: impact.legacy_certificate || null,
       });
       setImpactError("");
     } catch (err) {
@@ -58,6 +49,7 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
         virtual_trees: 0,
         real_trees_earned: 0,
         impact_points: 0,
+        legacy_certificate: null,
       });
       setImpactError("Impact data could not be loaded.");
       if (err.status === 401) {
@@ -211,76 +203,9 @@ const ProfileScreen = ({ totalWaterSaved, onAuthChange }) => {
           </form>
         )}
 
-        <section style={styles.gardenCard}>
-          <div style={styles.treeImageWrap}>
-            <img
-              src={`${API_BASE_URL}/static/trees/${currentStage.key}.png`}
-              alt={currentStage.label}
-              style={styles.treeImage}
-            />
-          </div>
-
-          <p style={styles.stageEyebrow}>Virtual Garden</p>
-          <h3 style={styles.stageTitle}>{currentStage.label}</h3>
-          <p style={styles.stageCopy}>{currentStage.description}</p>
-
-          <div style={styles.progressTrack}>
-            <div
-              style={{
-                ...styles.progressFill,
-                width: `${getCurrentTreeProgressPercent(currentTreeLiters)}%`,
-              }}
-            />
-          </div>
-
-          <p style={styles.progressLabel}>Next tree progress</p>
-          <p style={styles.progressText}>
-            {Math.round(currentTreeLiters).toLocaleString()} /{" "}
-            {VIRTUAL_TREE_GOAL_LITERS.toLocaleString()} L saved
-          </p>
-          <p style={styles.totalWaterText}>
-            Total saved: {impactWaterSaved.toLocaleString()} L
-          </p>
-
-          <div style={styles.statsGrid}>
-            <div style={styles.statBox}>
-              <strong>{Number(impactStats.virtual_trees || 0).toLocaleString()}</strong>
-              <span>Virtual trees</span>
-            </div>
-            <div style={styles.statBox}>
-              <strong>{Number(impactStats.real_trees_earned || 0).toLocaleString()}</strong>
-              <span>Real trees</span>
-            </div>
-            <div style={styles.statBox}>
-              <strong>{Number(impactStats.total_items_reused || 0).toLocaleString()}</strong>
-              <span>Second-hand buys</span>
-            </div>
-            <div style={styles.statBox}>
-              <strong>{Number(impactStats.impact_points || 0).toLocaleString()}</strong>
-              <span>Impact points</span>
-            </div>
-          </div>
-
-          <div style={styles.gardenStrip}>
-            <p style={styles.gardenLevelText}>
-              Garden Level {gardenLevel.level} | {gardenLevel.completedInLevel} /{" "}
-              {gardenLevel.slotCount} trees
-            </p>
-            {buildGardenSlots(impactStats.virtual_trees, currentStage.key, 5).map((slot) => (
-              <div key={slot.id} style={slot.filled ? styles.gardenPlotFilled : styles.gardenPlot}>
-                {slot.filled ? (
-                  <img
-                    src={`${API_BASE_URL}/static/trees/${slot.stage}.png`}
-                    alt=""
-                    style={styles.gardenTree}
-                  />
-                ) : (
-                  <span style={styles.emptyPlotDot} />
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+        <div style={{ marginTop: "18px" }}>
+          <VirtualGardenCard impact={impactStats} totalWaterSaved={impactWaterSaved} />
+        </div>
 
         {impactError && (
           <p style={{ color: "#8a6d3b", fontSize: "13px", margin: "6px 0 0" }}>

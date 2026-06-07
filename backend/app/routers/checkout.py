@@ -8,7 +8,9 @@ from app.services.impact_service import (
     apply_impact_milestones,
     ensure_user_impact,
     estimate_product_water_saved,
+    get_or_create_legacy_certificate,
     get_tree_stage_payload,
+    serialize_certificate,
 )
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"])
@@ -110,6 +112,7 @@ def checkout(
 
     apply_impact_milestones(impact)
     impact.updated_at = datetime.now()
+    certificate = get_or_create_legacy_certificate(db, current_user, impact)
 
     db.flush()
     order_ids = [order.order_id for order in orders]
@@ -127,7 +130,8 @@ def checkout(
         "water_saved_liters": total_water_saved,
         "points_earned": int(total_water_saved // 100),
         "total_water_saved_all_time": impact.total_water_saved_liters,
-        "tree_stage": tree_stage
+        "tree_stage": tree_stage,
+        "legacy_certificate": serialize_certificate(certificate),
     }
 
 @router.get("/orders", response_model=list[schemas.OrderResponse])
@@ -162,6 +166,7 @@ def get_my_orders(
                 "size": product.size if product else None,
                 "color": product.color if product else None,
                 "category": product.category if product else None,
+                "gender": product.gender if product else None,
                 "image_url": product.image_url if product else None,
                 "water_saved_liters": product.water_saved_liters if product else None,
             },
