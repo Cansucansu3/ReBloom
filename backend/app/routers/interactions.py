@@ -21,7 +21,11 @@ def comment_to_response(comment):
         "comment_id": comment.comment_id,
         "product_id": comment.product_id,
         "user_id": comment.user_id,
-        "username": make_username(user_name),
+        "username": (
+            f"@{comment.user.username}"
+            if comment.user and comment.user.username
+            else make_username(user_name)
+        ),
         "user_name": user_name,
         "text": comment.text,
         "created_at": comment.created_at,
@@ -76,30 +80,60 @@ def like_product(
     
     return {"message": "Product liked"}
 
-@router.get("/liked")
-def get_liked_products(
+
+@router.get("/liked/{product_id}")
+def get_like_status(
+    product_id: int,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
     liked = db.query(models.UserInteraction).filter(
         models.UserInteraction.user_id == current_user.user_id,
+        models.UserInteraction.product_id == product_id,
         models.UserInteraction.interaction_type == "liked"
-    ).all()
-    
-    products = []
-    for item in liked:
-        product = db.query(models.Product).filter(
-            models.Product.product_id == item.product_id
-        ).first()
-        if product:
-            products.append({
-                "product_id": product.product_id,
-                "title": product.title,
-                "price": product.price,
-                "image_url": product.image_url
-            })
-    
-    return products
+    ).first()
+
+    return {"liked": liked is not None}
+
+
+@router.delete("/like/{product_id}")
+def unlike_product(
+    product_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    deleted_count = db.query(models.UserInteraction).filter(
+        models.UserInteraction.user_id == current_user.user_id,
+        models.UserInteraction.product_id == product_id,
+        models.UserInteraction.interaction_type == "liked"
+    ).delete(synchronize_session=False)
+
+    db.commit()
+
+    return {
+        "message": "Product removed from favorites",
+        "removed": deleted_count > 0,
+    }
+
+
+@router.get("/liked", response_model=list[schemas.ProductResponse])
+def get_liked_products(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(models.Product)
+        .join(
+            models.UserInteraction,
+            models.UserInteraction.product_id == models.Product.product_id,
+        )
+        .filter(
+            models.UserInteraction.user_id == current_user.user_id,
+            models.UserInteraction.interaction_type == "liked",
+        )
+        .order_by(models.UserInteraction.timestamp.desc())
+        .all()
+    )
 
 
 @router.get("/comments/{product_id}", response_model=list[schemas.ProductCommentResponse])

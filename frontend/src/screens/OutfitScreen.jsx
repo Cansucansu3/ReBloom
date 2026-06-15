@@ -3,6 +3,9 @@ import { getOutfitRecommendations } from "../api/api";
 import ProductCard from "../components/ProductCard";
 
 
+const outfitRecommendationCache = new Map();
+
+
 const toDetailItem = (product) => ({
   id: product.product_id,
   product_id: product.product_id,
@@ -15,6 +18,7 @@ const toDetailItem = (product) => ({
   category: product.category,
   subcategory: product.subcategory,
   gender: product.gender,
+  occasion: product.occasion,
   size: product.size,
   color: product.color,
   condition: product.condition,
@@ -36,6 +40,17 @@ const toCardItem = (product) => ({
   image: product.image_url,
 });
 
+const normalizeOutfitResponse = (data) => ({
+  products: data.products || [],
+  groups: Object.entries(data.groups || {})
+    .map(([key, group]) => ({
+      key,
+      title: group.title || key,
+      products: group.products || [],
+    }))
+    .filter((group) => group.products.length > 0),
+});
+
 const OutfitScreen = ({ item, onBack, onProductSelect }) => {
   const [status, setStatus] = useState("loading");
   const [products, setProducts] = useState([]);
@@ -46,26 +61,39 @@ const OutfitScreen = ({ item, onBack, onProductSelect }) => {
     const productId = item.product_id || item.id;
     if (!productId) return;
 
+    const cachedResult = outfitRecommendationCache.get(productId);
+    if (cachedResult) {
+      setProducts(cachedResult.products);
+      setGroups(cachedResult.groups);
+      setError("");
+      setStatus("ready");
+      return;
+    }
+
+    let mounted = true;
     setStatus("loading");
+    setProducts([]);
     setGroups([]);
+    setError("");
     getOutfitRecommendations(productId)
       .then((data) => {
-        setProducts(data.products || []);
-        setGroups(
-          Object.entries(data.groups || {})
-            .map(([key, group]) => ({
-              key,
-              title: group.title || key,
-              products: group.products || [],
-            }))
-            .filter((group) => group.products.length > 0)
-        );
+        if (!mounted) return;
+
+        const result = normalizeOutfitResponse(data);
+        outfitRecommendationCache.set(productId, result);
+        setProducts(result.products);
+        setGroups(result.groups);
         setStatus("ready");
       })
       .catch((err) => {
+        if (!mounted) return;
         setError(err.message);
         setStatus("error");
       });
+
+    return () => {
+      mounted = false;
+    };
   }, [item.id, item.product_id]);
 
   return (

@@ -3,6 +3,7 @@ import {
   getHomeRecommendations,
   getLikedSimilarRecommendations,
   getProducts,
+  getRecentlyViewedRecommendations,
 } from "../api/api";
 import ProductCard from "../components/ProductCard";
 
@@ -20,6 +21,7 @@ const mapProductForDetail = (product) => ({
   subcategory: product.subcategory,
   size: product.size,
   gender: product.gender,
+  occasion: product.occasion,
   color: product.color,
   condition: product.condition,
   material: product.material,
@@ -62,6 +64,7 @@ const ProductSection = ({ title, products, onProductSelect }) => {
 const HomeScreen = ({ onProductSelect }) => {
   const [status, setStatus] = useState("loading");
   const [browsingProducts, setBrowsingProducts] = useState([]);
+  const [recentlyViewedProducts, setRecentlyViewedProducts] = useState([]);
   const [similarProducts, setSimilarProducts] = useState([]);
 
   useEffect(() => {
@@ -71,14 +74,16 @@ const HomeScreen = ({ onProductSelect }) => {
       setStatus("loading");
 
       try {
-        const [home, likedSimilar] = await Promise.all([
+        const [home, recentlyViewed, likedSimilar] = await Promise.all([
           getHomeRecommendations(),
+          getRecentlyViewedRecommendations(),
           getLikedSimilarRecommendations(),
         ]);
 
         if (!isMounted) return;
 
         setBrowsingProducts(home.products || []);
+        setRecentlyViewedProducts(recentlyViewed.products || []);
         setSimilarProducts(likedSimilar.products || []);
         setStatus("ready");
       } catch (error) {
@@ -87,6 +92,7 @@ const HomeScreen = ({ onProductSelect }) => {
           if (!isMounted) return;
 
           setBrowsingProducts(products);
+          setRecentlyViewedProducts([]);
           setSimilarProducts([]);
           setStatus("ready");
         } catch (fallbackError) {
@@ -117,6 +123,11 @@ const HomeScreen = ({ onProductSelect }) => {
       <ProductSection
         title="Inspired by your browsing"
         products={browsingProducts}
+        onProductSelect={onProductSelect}
+      />
+      <ProductSection
+        title="Recently Viewed"
+        products={recentlyViewedProducts}
         onProductSelect={onProductSelect}
       />
       <ProductSection

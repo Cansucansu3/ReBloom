@@ -4,12 +4,13 @@ import os
 import urllib.error
 import urllib.request
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app import auth, models
 from app.database import get_db
+from app.services.occasion_service import occasions_are_compatible, product_occasion
 
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
@@ -40,6 +41,44 @@ OUTFIT_SLOT_TITLES = {
     "shoes": "Shoes",
     "bags": "Bags",
     "outerwear": "Outerwear",
+}
+
+CASUAL_BAG_TERMS = {
+    "canvas",
+    "shopper",
+    "shopping",
+    "tote",
+}
+
+EVENING_BAG_TERMS = {
+    "clutch",
+    "evening",
+    "metallic",
+    "party",
+}
+
+FORMAL_ITEM_TERMS = {
+    "evening",
+    "formal",
+    "party",
+    "satin",
+    "sequin",
+    "tulle",
+}
+
+FORMAL_SHOE_TERMS = {
+    "heel",
+    "heels",
+    "pump",
+    "pumps",
+    "stiletto",
+}
+
+FLIP_FLOP_TERMS = {
+    "flip flop",
+    "flip-flop",
+    "flipflop",
+    "thong sandal",
 }
 
 NEUTRAL_COLORS = {
@@ -85,6 +124,7 @@ def product_to_dict(product):
         "color": product.color,
         "size": product.size,
         "gender": product.gender,
+        "occasion": product_occasion(product),
         "condition": product.condition,
         "material": product.material,
         "weight_kg": product.weight_kg,
@@ -226,6 +266,90 @@ def infer_outfit_category(product):
     return normalized
 
 
+def product_search_text(product):
+    return " ".join(
+        str(value or "").strip().lower()
+        for value in [
+            product.title,
+            product.description,
+            product.category,
+            product.subcategory,
+        ]
+    )
+
+
+def infer_bag_style(product):
+    if infer_outfit_category(product) != "bags":
+        return None
+
+    text = product_search_text(product)
+    if any(term in text for term in EVENING_BAG_TERMS):
+        return "evening"
+    if any(term in text for term in CASUAL_BAG_TERMS):
+        return "casual"
+    return "everyday"
+
+
+def get_outfit_target_categories(base_product):
+    base_category = infer_outfit_category(base_product)
+    if base_category != "bags":
+        return OUTFIT_CATEGORY_SLOTS.get(
+            base_category,
+            OUTFIT_CATEGORY_SLOTS["clothing"],
+        )
+
+    bag_style = infer_bag_style(base_product)
+    if bag_style == "casual":
+        return ["tops", "pants", "skirts", "shoes"]
+    if bag_style == "evening":
+        return ["dresses", "shoes", "outerwear"]
+    return ["tops", "pants", "skirts", "dresses", "shoes"]
+
+
+def is_bag_style_compatible(base_product, candidate):
+    bag_style = infer_bag_style(base_product)
+    if not bag_style:
+        return True
+
+    candidate_text = product_search_text(candidate)
+    candidate_category = infer_outfit_category(candidate)
+    is_formal_item = any(term in candidate_text for term in FORMAL_ITEM_TERMS)
+    is_formal_shoe = (
+        candidate_category == "shoes"
+        and any(term in candidate_text for term in FORMAL_SHOE_TERMS)
+    )
+
+    if bag_style == "casual":
+        return not is_formal_item and not is_formal_shoe
+    if bag_style == "evening":
+        if candidate_category == "dresses":
+            return is_formal_item
+        if candidate_category == "shoes":
+            return is_formal_shoe
+
+    return True
+
+
+def is_occasion_compatible(base_product, candidate):
+    base_category = infer_outfit_category(base_product)
+    candidate_category = infer_outfit_category(candidate)
+    candidate_text = product_search_text(candidate)
+    candidate_occasion = product_occasion(candidate)
+
+    if candidate_category == "shoes" and any(
+        term in candidate_text for term in FLIP_FLOP_TERMS
+    ):
+        return base_category != "dresses"
+
+    if base_category == "dresses" and candidate_occasion == "Sports":
+        return False
+
+    return occasions_are_compatible(
+        product_occasion(base_product),
+        candidate_occasion,
+    )
+
+
 def ai_product_payload(product):
     return {
         "product_id": product.product_id,
@@ -314,12 +438,15 @@ def score_outfit_metadata(base_product, candidate, target_category):
     if base_product.brand and candidate.brand and base_product.brand == candidate.brand:
         score += 0.2
 
+    if product_occasion(base_product) == product_occasion(candidate):
+        score += 0.8
+
     return score
 
 
 def build_outfit_groups(base_product, candidates):
     base_category = infer_outfit_category(base_product)
-    target_categories = OUTFIT_CATEGORY_SLOTS.get(base_category, OUTFIT_CATEGORY_SLOTS["clothing"])
+    target_categories = get_outfit_target_categories(base_product)
     groups = {}
     flat_scored = []
     used_product_ids = set()
@@ -330,6 +457,8 @@ def build_outfit_groups(base_product, candidates):
             candidate for candidate in candidates
             if infer_outfit_category(candidate) == target_category
             and is_gender_compatible(base_product, candidate)
+            and is_bag_style_compatible(base_product, candidate)
+            and is_occasion_compatible(base_product, candidate)
         ]
         if not slot_candidates:
             continue
@@ -619,6 +748,44 @@ def recommend_similar_to_liked(
         "title": "Similar to items you liked",
         "basis_product_ids": seed_ids,
         "products": [product_to_dict(product) for _, product in scored[:8]],
+    }
+
+
+@router.get("/recently-viewed")
+def recommend_recently_viewed(
+    limit: int = Query(default=8, ge=1, le=20),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    latest_views = (
+        db.query(
+            models.UserInteraction.product_id.label("product_id"),
+            func.max(models.UserInteraction.timestamp).label("last_viewed_at"),
+        )
+        .filter(
+            models.UserInteraction.user_id == current_user.user_id,
+            models.UserInteraction.interaction_type == "viewed",
+        )
+        .group_by(models.UserInteraction.product_id)
+        .subquery()
+    )
+    products = (
+        db.query(models.Product)
+        .join(
+            latest_views,
+            latest_views.c.product_id == models.Product.product_id,
+        )
+        .filter(
+            models.Product.is_active == True,
+        )
+        .order_by(latest_views.c.last_viewed_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "title": "Recently Viewed",
+        "products": [product_to_dict(product) for product in products],
     }
 
 

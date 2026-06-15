@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -12,6 +13,61 @@ from app.services.impact_service import (
 
 
 router = APIRouter(prefix="/profiles", tags=["Public Profiles"])
+
+
+@router.get("/search", response_model=list[schemas.PublicProfileSearchResult])
+def search_profiles(
+    query: str = Query(..., min_length=1, max_length=60),
+    limit: int = Query(8, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    search_value = query.strip().lstrip("@").lower()
+    if not search_value:
+        return []
+
+    users = (
+        db.query(models.User)
+        .filter(
+            models.User.is_active == True,
+            or_(
+                func.lower(models.User.name).contains(search_value),
+                func.lower(models.User.username).contains(search_value),
+            ),
+        )
+        .order_by(
+            (func.lower(models.User.username) == search_value).desc(),
+            models.User.name.asc(),
+        )
+        .limit(limit)
+        .all()
+    )
+
+    results = []
+    for user in users:
+        seller = user.seller_profile
+        active_listing_count = 0
+        if seller:
+            active_listing_count = db.query(models.Product).filter(
+                models.Product.seller_id == seller.seller_id,
+                models.Product.is_active == True,
+            ).count()
+
+        results.append(
+            {
+                "user_id": user.user_id,
+                "seller_id": seller.seller_id if seller else None,
+                "name": user.name,
+                "username": user.username,
+                "location": user.location,
+                "profile_image": user.profile_image,
+                "verified": bool(seller.verified) if seller else False,
+                "total_sales": (seller.total_sales or 0) if seller else 0,
+                "virtual_trees": user.impact.virtual_trees if user.impact else 0,
+                "active_listing_count": active_listing_count,
+            }
+        )
+
+    return results
 
 
 @router.get("/seller/{seller_id}", response_model=schemas.PublicProfileResponse)
@@ -64,7 +120,10 @@ def build_public_profile(db: Session, user: models.User, seller: models.SellerPr
         "user_id": user.user_id,
         "seller_id": seller.seller_id if seller else None,
         "name": user.name,
+        "username": user.username,
         "location": user.location,
+        "profile_image": user.profile_image,
+        "bio": user.bio,
         "rating": seller.rating if seller else None,
         "total_sales": seller.total_sales if seller else None,
         "verified": seller.verified if seller else None,

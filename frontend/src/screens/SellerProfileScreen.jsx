@@ -62,10 +62,16 @@ const SellerProfileScreen = ({ profile: initialProfile, sellerId, onBack, onProd
       </button>
 
       <section style={styles.header}>
-        <div style={styles.avatar}>{getInitial(profile.name)}</div>
+        <div style={styles.avatar}>
+          {profile.profile_image ? (
+            <img src={profile.profile_image} alt="" style={styles.avatarImage} />
+          ) : (
+            getInitial(profile.name)
+          )}
+        </div>
         <div>
           <h2 style={styles.name}>{profile.name}</h2>
-          <p style={styles.handle}>{makeUsername(profile.name)}</p>
+          <p style={styles.handle}>@{profile.username}</p>
           <p style={styles.meta}>
             {profile.verified ? "Verified seller" : "ReBloom seller"}
             {profile.location ? ` | ${profile.location}` : ""}
@@ -74,6 +80,7 @@ const SellerProfileScreen = ({ profile: initialProfile, sellerId, onBack, onProd
             {Number(profile.total_sales || 0).toLocaleString()} sales
             {profile.rating ? ` | ${Number(profile.rating).toFixed(1)} rating` : ""}
           </p>
+          {profile.bio && <p style={styles.bio}>{profile.bio}</p>}
         </div>
       </section>
 
@@ -154,16 +161,6 @@ function getInitial(name) {
   return String(name || "R").trim().charAt(0).toUpperCase();
 }
 
-function makeUsername(name) {
-  const slug = String(name || "rebloom-user")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return `@${slug || "rebloom-user"}`;
-}
-
 function mapProductForCard(product) {
   return {
     id: product.product_id,
@@ -189,6 +186,7 @@ function mapProductForDetail(product) {
     category: product.category,
     subcategory: product.subcategory,
     gender: product.gender,
+    occasion: product.occasion,
     size: product.size,
     color: product.color,
     condition: product.condition,
@@ -244,6 +242,12 @@ const styles = {
     justifyContent: "center",
     fontSize: "30px",
     fontWeight: "bold",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
   name: {
     margin: "0 0 3px",
@@ -259,6 +263,12 @@ const styles = {
     margin: "3px 0",
     color: "#5f6f5e",
     fontSize: "14px",
+  },
+  bio: {
+    margin: "8px 0 0",
+    color: "#4f5c4e",
+    lineHeight: 1.45,
+    whiteSpace: "pre-wrap",
   },
   gardenCard: {
     marginTop: "14px",

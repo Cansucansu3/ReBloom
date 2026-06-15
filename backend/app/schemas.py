@@ -8,6 +8,7 @@ from datetime import datetime
 
 class UserCreate(BaseModel):
     name: str
+    username: Optional[str] = None
     email: str
     password: str
     location: Optional[str] = None
@@ -19,13 +20,23 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     user_id: int
     name: str
+    username: str
     email: str
     location: Optional[str]
+    profile_image: Optional[str] = None
+    bio: Optional[str] = None
     created_at: datetime
     is_active: bool
     
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
+    username: Optional[str] = Field(None, min_length=3, max_length=30)
+    location: Optional[str] = Field(None, max_length=100)
+    profile_image: Optional[str] = None
+    bio: Optional[str] = Field(None, max_length=500)
 
 class Token(BaseModel):
     access_token: str
@@ -44,6 +55,7 @@ class ProductCreate(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     gender: Optional[str] = "Unisex"
+    occasion: Optional[str] = None
     condition: Optional[str] = None
     material: Optional[str] = None
     weight_kg: Optional[float] = None
@@ -55,11 +67,17 @@ class ProductUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    brand: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
     price: Optional[float] = None
     condition: Optional[str] = None
     material: Optional[str] = None
     weight_kg: Optional[float] = None
     gender: Optional[str] = None
+    occasion: Optional[str] = None
+    image_url: Optional[str] = None
     is_active: Optional[bool] = None
 
 class ProductResponse(BaseModel):
@@ -74,6 +92,7 @@ class ProductResponse(BaseModel):
     color: Optional[str]
     size: Optional[str]
     gender: Optional[str] = "Unisex"
+    occasion: Optional[str] = "Casual"
     condition: Optional[str]
     material: Optional[str]
     weight_kg: Optional[float] = None
@@ -82,6 +101,7 @@ class ProductResponse(BaseModel):
     image_url: Optional[str]
     is_second_hand: bool
     is_active: bool
+    is_sold: bool = False
     created_at: datetime
     
     class Config:
@@ -117,7 +137,14 @@ class CartItemResponse(BaseModel):
     title: str
     brand: Optional[str] = None
     size: Optional[str] = None
+    color: Optional[str] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
     gender: Optional[str] = "Unisex"
+    occasion: Optional[str] = "Casual"
+    condition: Optional[str] = None
+    material: Optional[str] = None
+    weight_kg: Optional[float] = None
     image_url: Optional[str] = None
     water_saved_liters: Optional[float] = None
     price: float
@@ -150,7 +177,12 @@ class OrderProductResponse(BaseModel):
     size: Optional[str] = None
     color: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     gender: Optional[str] = "Unisex"
+    occasion: Optional[str] = "Casual"
+    condition: Optional[str] = None
+    material: Optional[str] = None
+    weight_kg: Optional[float] = None
     image_url: Optional[str] = None
     water_saved_liters: Optional[float] = None
 
@@ -207,7 +239,10 @@ class PublicProfileResponse(BaseModel):
     user_id: int
     seller_id: Optional[int] = None
     name: str
+    username: str
     location: Optional[str] = None
+    profile_image: Optional[str] = None
+    bio: Optional[str] = None
     rating: Optional[float] = None
     total_sales: Optional[int] = None
     verified: Optional[bool] = None
@@ -215,6 +250,19 @@ class PublicProfileResponse(BaseModel):
     impact: PublicImpactResponse
     tree: PublicTreeResponse
     active_products: List[ProductResponse]
+
+
+class PublicProfileSearchResult(BaseModel):
+    user_id: int
+    seller_id: Optional[int] = None
+    name: str
+    username: str
+    location: Optional[str] = None
+    profile_image: Optional[str] = None
+    verified: bool = False
+    total_sales: int = 0
+    virtual_trees: int = 0
+    active_listing_count: int = 0
 
 # =====================================================
 # IMPACT SCHEMAS

@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   addProductComment,
   addToCart,
+  getFavoriteStatus,
   getProductComments,
   likeProduct,
   recordProductView,
+  unlikeProduct,
 } from "../api/api";
 
 const formatGender = (value) => {
@@ -17,6 +19,12 @@ const formatGender = (value) => {
   return "Unisex";
 };
 
+const formatCondition = (value) => {
+  const condition = String(value || "Used").trim();
+  if (!condition) return "Used";
+  return condition.charAt(0).toUpperCase() + condition.slice(1).toLowerCase();
+};
+
 const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
@@ -25,6 +33,8 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const [cartAdded, setCartAdded] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [likeMessage, setLikeMessage] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const rawWaterSaved = item.water_saved_liters ?? item.waterSaved;
   const waterSaved = Number.isFinite(Number(rawWaterSaved))
     ? Math.round(Number(rawWaterSaved))
@@ -33,11 +43,36 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   const weightLabel = item.weight_kg ?? item.weight;
   const isSold = item.is_active === false || item.status === "Sold";
   const displayGender = formatGender(item.gender);
+  const displayCondition = formatCondition(item.condition);
 
   useEffect(() => {
     setCartAdded(false);
     setCartLoading(false);
     setCartMessage("");
+  }, [item.id, item.product_id]);
+
+  useEffect(() => {
+    const productId = item.product_id || item.id;
+    if (!productId) return;
+
+    let mounted = true;
+    setFavoriteLoading(true);
+    setLikeMessage("");
+
+    getFavoriteStatus(productId)
+      .then((data) => {
+        if (mounted) setIsFavorite(Boolean(data.liked));
+      })
+      .catch(() => {
+        if (mounted) setIsFavorite(false);
+      })
+      .finally(() => {
+        if (mounted) setFavoriteLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [item.id, item.product_id]);
 
   useEffect(() => {
@@ -107,11 +142,26 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
   };
 
   const handleLike = async () => {
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+    setLikeMessage("");
+
     try {
-      await likeProduct(item.product_id || item.id);
-      setLikeMessage("Added to favorites.");
+      const productId = item.product_id || item.id;
+      if (isFavorite) {
+        await unlikeProduct(productId);
+        setIsFavorite(false);
+        setLikeMessage("Removed from favorites.");
+      } else {
+        await likeProduct(productId);
+        setIsFavorite(true);
+        setLikeMessage("Added to favorites.");
+      }
     } catch (err) {
-      setLikeMessage(`Could not add to favorites: ${err.message}`);
+      setLikeMessage(`Could not update favorites: ${err.message}`);
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -145,6 +195,19 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
           <p>
             <strong>Gender:</strong> {displayGender}
           </p>
+          <p>
+            <strong>Condition:</strong> {displayCondition}
+          </p>
+          <p>
+            <strong>Occasion:</strong> {item.occasion || "Casual"}
+          </p>
+          <p>
+            <strong>Fabric:</strong> {materialLabel}
+          </p>
+          <p>
+            <strong>Weight:</strong>{" "}
+            {weightLabel ? `${Number(weightLabel).toFixed(1)} kg` : "Unknown"}
+          </p>
         </div>
 
         {item.seller_id && (
@@ -163,14 +226,26 @@ const ProductDetail = ({ item, onBack, onShowOutfit, onSellerSelect }) => {
             {waterSaved !== null ? `${waterSaved.toLocaleString()} L saved` : "Not calculated"}
           </h3>
           <p style={styles.impactDetail}>
-            {materialLabel}
-            {weightLabel ? ` | ${Number(weightLabel).toFixed(1)} kg` : ""}
+            Calculated from {materialLabel.toLowerCase()}
+            {weightLabel ? ` and ${Number(weightLabel).toFixed(1)} kg item weight` : ""}
           </p>
         </div>
 
         <div style={styles.actions}>
-          <button onClick={handleLike} style={styles.favoriteButton}>
-            Add to Favorites
+          <button
+            onClick={handleLike}
+            disabled={favoriteLoading}
+            style={{
+              ...styles.favoriteButton,
+              opacity: favoriteLoading ? 0.7 : 1,
+              cursor: favoriteLoading ? "default" : "pointer",
+            }}
+          >
+            {favoriteLoading
+              ? "Updating..."
+              : isFavorite
+                ? "Remove from Favorites"
+                : "Add to Favorites"}
           </button>
           {!isSold && (
             <button

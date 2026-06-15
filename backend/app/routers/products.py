@@ -5,6 +5,7 @@ from typing import List
 from app import schemas, models, auth
 from app.database import get_db
 from app.services.impact_service import estimate_water_saved_liters
+from app.services.occasion_service import infer_occasion
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -37,6 +38,12 @@ def create_product(
         color=product_data.color,
         size=product_data.size,
         gender=product_data.gender or "Unisex",
+        occasion=product_data.occasion or infer_occasion(
+            product_data.title,
+            product_data.description,
+            product_data.category,
+            product_data.subcategory,
+        ),
         condition=product_data.condition,
         material=product_data.material,
         weight_kg=product_data.weight_kg,
@@ -76,6 +83,7 @@ def get_products(
                 models.Product.brand.ilike(search_term),
                 models.Product.category.ilike(search_term),
                 models.Product.subcategory.ilike(search_term),
+                models.Product.occasion.ilike(search_term),
                 models.Product.material.ilike(search_term),
                 models.Product.color.ilike(search_term),
             )
@@ -129,17 +137,36 @@ def update_product(
     
     if seller.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    if product.is_sold:
+        raise HTTPException(status_code=409, detail="Sold products cannot be edited or relisted")
     
-    update_data = product_data.dict(exclude_unset=True)
+    update_data = product_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(product, key, value)
 
-    if "material" in update_data or "weight_kg" in update_data:
+    if {"material", "weight_kg", "category"} & update_data.keys():
         product.water_saved_liters = estimate_water_saved_liters(
             product.material,
             product.weight_kg,
             product.category,
         )
+
+    if (
+        "occasion" not in update_data
+        and {"title", "description", "category", "subcategory"} & update_data.keys()
+    ):
+        product.occasion = infer_occasion(
+            product.title,
+            product.description,
+            product.category,
+            product.subcategory,
+        )
+
+    if update_data.get("is_active") is False:
+        db.query(models.Cart).filter(
+            models.Cart.product_id == product.product_id
+        ).delete(synchronize_session=False)
     
     db.commit()
     db.refresh(product)
@@ -161,8 +188,14 @@ def delete_product(
     
     if seller.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    if product.is_sold:
+        raise HTTPException(status_code=409, detail="Sold products are already inactive")
     
     product.is_active = False
+    db.query(models.Cart).filter(
+        models.Cart.product_id == product.product_id
+    ).delete(synchronize_session=False)
     db.commit()
     
-    return {"message": "Product deleted successfully"}
+    return {"message": "Product removed from sale"}

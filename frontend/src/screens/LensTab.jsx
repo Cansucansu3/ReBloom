@@ -185,6 +185,7 @@ const LensTab = ({ onListingSaved, onAuthRequired }) => {
           product_id: savedProduct.product_id,
           preview: savedProduct.image_url,
           gender: savedProduct.gender,
+          occasion: savedProduct.occasion,
           water_saved_liters: savedProduct.water_saved_liters,
           weight_kg: savedProduct.weight_kg,
         },

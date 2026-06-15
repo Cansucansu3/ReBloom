@@ -37,6 +37,7 @@ def product_to_dict(product, score=None):
         "color": product.color,
         "size": product.size,
         "gender": product.gender,
+        "occasion": product.occasion,
         "condition": product.condition,
         "material": product.material,
         "weight_kg": product.weight_kg,
@@ -60,6 +61,7 @@ def ai_product_payload(product):
         "category": product.category,
         "subcategory": product.subcategory,
         "gender": product.gender,
+        "occasion": product.occasion,
         "color": product.color,
         "image_url": product.image_url,
     }

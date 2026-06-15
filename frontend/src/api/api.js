@@ -64,6 +64,19 @@ export async function createProduct(product) {
   });
 }
 
+export async function updateProduct(productId, product) {
+  return request(`/products/${productId}`, {
+    method: "PUT",
+    body: JSON.stringify(product),
+  });
+}
+
+export async function removeProductFromSale(productId) {
+  return request(`/products/${productId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function getMyProducts() {
   return request("/products/mine");
 }
@@ -105,6 +118,20 @@ export async function likeProduct(productId) {
   return request(`/interactions/like/${productId}`, {
     method: "POST",
   });
+}
+
+export async function getFavoriteStatus(productId) {
+  return request(`/interactions/liked/${productId}`);
+}
+
+export async function unlikeProduct(productId) {
+  return request(`/interactions/like/${productId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getLikedProducts() {
+  return request("/interactions/liked");
 }
 
 export async function getProductComments(productId) {
@@ -152,6 +179,10 @@ export async function getLikedSimilarRecommendations() {
   return request("/recommendations/liked-similar");
 }
 
+export async function getRecentlyViewedRecommendations(limit = 8) {
+  return request(`/recommendations/recently-viewed?limit=${limit}`);
+}
+
 export async function getSimilarProducts(productId) {
   return request(`/products/${productId}/similar`);
 }
@@ -176,6 +207,14 @@ export async function getPublicUserProfile(userId) {
   return request(`/profiles/user/${userId}`);
 }
 
+export async function searchProfiles(query, limit = 8) {
+  const params = new URLSearchParams({
+    query,
+    limit: String(limit),
+  });
+  return request(`/profiles/search?${params.toString()}`);
+}
+
 export async function login(email, password) {
   const data = await request("/users/login", {
     method: "POST",
@@ -194,4 +233,11 @@ export async function register(user) {
 
 export async function getMe() {
   return request("/users/me");
+}
+
+export async function updateMe(profile) {
+  return request("/users/me", {
+    method: "PUT",
+    body: JSON.stringify(profile),
+  });
 }

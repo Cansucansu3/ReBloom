@@ -8,6 +8,7 @@ import OutfitScreen from "./screens/OutfitScreen";
 import CartScreen from "./screens/CartScreen";
 import GardenScreen from "./screens/GardenScreen";
 import SellerProfileScreen from "./screens/SellerProfileScreen";
+import MyItemsScreen from "./screens/MyItemsScreen";
 import rebloomMark from "./assets/rebloom-mark.png";
 import {
   clearToken,
@@ -192,8 +193,6 @@ function App() {
   };
 
   const showOutfit = (product) => {
-    setSelectedProduct(null);
-    setProductReturnTarget(null);
     setSelectedSellerProfile(null);
     setSelectedSellerId(null);
     setOutfitProduct(product);
@@ -235,10 +234,23 @@ function App() {
     setSelectedProduct(product);
   };
 
+  const openProductFromOutfit = (product) => {
+    setProductReturnTarget({
+      outfitProduct,
+    });
+    setOutfitProduct(null);
+    setSelectedProduct(product);
+  };
+
   const closeProductDetail = () => {
     const target = productReturnTarget;
     setSelectedProduct(null);
     setProductReturnTarget(null);
+
+    if (target?.outfitProduct) {
+      setOutfitProduct(target.outfitProduct);
+      return;
+    }
 
     if (target?.profile || target?.sellerId) {
       setSelectedSellerProfile(target.profile || null);
@@ -267,10 +279,7 @@ function App() {
         <OutfitScreen
           item={outfitProduct}
           onBack={() => setOutfitProduct(null)}
-          onProductSelect={(product) => {
-            setOutfitProduct(null);
-            openProductDetail(product);
-          }}
+          onProductSelect={openProductFromOutfit}
         />
       ) : selectedProduct ? (
         <ProductDetail
@@ -348,6 +357,8 @@ function App() {
               ) : activeSearch ? (
                 <ResultsGrid
                   onProductSelect={openProductDetail}
+                  onProfileSelect={showPublicProfile}
+                  onOwnProfileSelect={showProfile}
                   searchQuery={activeSearch}
                 />
               ) : (
@@ -366,6 +377,7 @@ function App() {
               <ProfileScreen
                 totalWaterSaved={totalWaterSaved}
                 onAuthChange={() => setMyItems([])}
+                onProductSelect={openProductDetail}
               />
             )}
 
@@ -384,56 +396,11 @@ function App() {
             )}
 
             {view === "myItems" && (
-              <div style={{ padding: "20px" }}>
-                <h2 style={{ textAlign: "center" }}>My Uploaded Items</h2>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "15px",
-                    justifyContent: "center",
-                  }}
-                >
-                  {myItems.length === 0 ? (
-                    <p>No items listed yet.</p>
-                  ) : (
-                    myItems.map((item, i) => (
-                      <div
-                        key={i}
-                        style={styles.miniCard}
-                        onClick={() => openProductDetail(item)}
-                      >
-                        <img
-                          src={item.preview}
-                          style={styles.miniImg}
-                          alt="item"
-                        />
-                        <p
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: "bold",
-                            margin: "5px 0",
-                          }}
-                        >
-                          {item.title}
-                        </p>
-                        <p style={{ fontSize: "12px", color: "#666" }}>
-                          {item.brand} | {item.size}
-                        </p>
-                        <span
-                          style={
-                            item.status === "Sold"
-                              ? styles.soldStatusBadge
-                              : styles.statusBadge
-                          }
-                        >
-                          {item.status === "Sold" ? "Sold" : "Listing Active"}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <MyItemsScreen
+                items={myItems}
+                onItemsChange={setMyItems}
+                onProductSelect={openProductDetail}
+              />
             )}
           </main>
         </>
@@ -620,6 +587,7 @@ function mapProductToMyItem(product) {
     brand: product.brand,
     size: product.size,
     gender: product.gender,
+    occasion: product.occasion,
     color: product.color,
     price: product.price,
     preview: product.image_url,
@@ -632,6 +600,7 @@ function mapProductToMyItem(product) {
     weight_kg: product.weight_kg,
     water_saved_liters: product.water_saved_liters,
     is_active: product.is_active,
-    status: product.is_active ? "Active" : "Sold",
+    is_sold: product.is_sold,
+    status: product.is_sold ? "Sold" : product.is_active ? "Active" : "Inactive",
   };
 }

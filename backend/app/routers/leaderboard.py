@@ -14,7 +14,7 @@ def get_leaderboard(
 ):
     top_users = db.query(
         models.User.user_id,
-        models.User.name,
+        models.User.username,
         models.UserImpact.total_water_saved_liters,
         models.UserImpact.virtual_trees
     ).join(
@@ -28,7 +28,7 @@ def get_leaderboard(
         result.append({
             "rank": i + 1,
             "user_id": user.user_id,
-            "username": user.name,
+            "username": f"@{user.username}",
             "water_saved_liters": user.total_water_saved_liters or 0,
             "virtual_trees": user.virtual_trees or 0
         })
