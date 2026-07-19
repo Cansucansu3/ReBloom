@@ -181,33 +181,59 @@ Evaluation Metrics
 
 # 📸 Screenshots
 
-## Home Page
+## 🏠 Home Page
 
-![Home](docs/home.png)
+Browse the marketplace and discover sustainable second-hand fashion products.
 
----
-
-## Marketplace
-
-![Marketplace](docs/marketplace.png)
+![Home](docs/01_home.png)
 
 ---
 
-## Product Page
+## 💧 Product Details & Sustainability Impact
 
-![Product](docs/product.png)
+View detailed product information together with estimated environmental impact.
 
----
-
-## AI Search
-
-![Search](docs/search.png)
+![Product Details](docs/02_product_detail_water_impact.png)
 
 ---
 
-## Outfit Recommendation
+## 👗 Complete the Look
 
-![Recommendation](docs/recommendation.png)
+Receive AI-powered outfit recommendations based on clothing compatibility.
+
+![Complete the Look](docs/03_complete_the_look.png)
+
+---
+
+## 🔍 AI Visual Search Results
+
+Upload an image and find visually similar clothing items using AI.
+
+![Visual Search Results](docs/04_visual_search_results.png)
+
+---
+
+## 📷 Lens Upload
+
+Upload a clothing image to start an AI-powered visual search.
+
+![Lens Upload](docs/05_lens_upload.png)
+
+---
+
+## 🌳 Virtual Garden
+
+Track your sustainability impact through the virtual garden feature.
+
+![Virtual Garden](docs/06_virtual_garden.png)
+
+---
+
+## 📋 Contact Sheet
+
+Overview of the application's main screens.
+
+![Contact Sheet](docs/contact_sheet.png)
 
 ---
 
